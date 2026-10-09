@@ -39,9 +39,12 @@ class CLoopbackSignaling : public ISignaling
 public:
   static constexpr uint32_t VIDEO_SSRC = 42;
 
-  explicit CLoopbackSignaling(bool unreachable = false, int tcpCandidates = 0)
+  explicit CLoopbackSignaling(bool unreachable = false,
+                              int tcpCandidates = 0,
+                              int udpCandidates = 0)
     : m_unreachable(unreachable),
-      m_tcpCandidates(tcpCandidates)
+      m_tcpCandidates(tcpCandidates),
+      m_udpCandidates(udpCandidates)
   {
   }
   ~CLoopbackSignaling() override { Close(); }
@@ -52,6 +55,11 @@ public:
     for (int i = 0; i < m_tcpCandidates; ++i)
       onCandidate(rtc::Candidate("candidate:" + std::to_string(i) + " 1 tcp 1671430143 127.0.0.1 " +
                                      std::to_string(9000 + i) + " typ host tcptype passive",
+                                 "video"));
+    for (int i = 0; i < m_udpCandidates; ++i)
+      onCandidate(rtc::Candidate("candidate:" + std::to_string(100 + i) +
+                                     " 1 udp 2122260223 127.0.0.1 " + std::to_string(9100 + i) +
+                                     " typ host",
                                  "video"));
 
     auto answer = std::make_shared<std::promise<std::string>>();
@@ -134,6 +142,7 @@ public:
 private:
   const bool m_unreachable;
   const int m_tcpCandidates;
+  const int m_udpCandidates;
   std::shared_ptr<rtc::PeerConnection> m_peer;
   std::shared_ptr<rtc::Track> m_videoTrack;
   std::string m_offer;
@@ -197,6 +206,21 @@ TEST(SessionTest, IgnoresTcpCandidates)
   InitRtcLog();
   TakeLogMessages();
   CLoopbackSignaling signaling(false, 30);
+  CSession session({{}, false, 10s, BIND_ADDRESS}, MakeBuffer());
+
+  ASSERT_TRUE(session.Connect(signaling));
+  session.Close();
+  signaling.Close();
+  for (const auto& message : TakeLogMessages())
+    EXPECT_EQ(message.find("maximum number of candidates"), std::string::npos) << message;
+}
+
+TEST(SessionTest, AcceptsManyCandidates)
+{
+  InitRtcLog();
+  TakeLogMessages();
+  // go2rtc announces about 40, depending on the network interfaces of its host
+  CLoopbackSignaling signaling(false, 0, 40);
   CSession session({{}, false, 10s, BIND_ADDRESS}, MakeBuffer());
 
   ASSERT_TRUE(session.Connect(signaling));

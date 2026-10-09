@@ -1,0 +1,11 @@
+--- a/src/ice.h
++++ b/src/ice.h
+@@ -18,7 +18,7 @@
+ #include <stdint.h>
+ 
+ #ifndef ICE_MAX_CANDIDATES_COUNT
+-#define ICE_MAX_CANDIDATES_COUNT 30 // ~ 500B * 30 = 15KB
++#define ICE_MAX_CANDIDATES_COUNT 100 // ~ 500B * 100 = 50KB
+ #endif
+ 
+ #define ICE_CANDIDATE_PENALTY_TCP 50

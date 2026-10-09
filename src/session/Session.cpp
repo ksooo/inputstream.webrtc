@@ -52,7 +52,7 @@ void AddRemoteCandidate(rtc::PeerConnection& peerConnection, rtc::Candidate cand
 {
   Log(LogLevel::LEVEL_DEBUG, "Remote candidate: %s", std::string(candidate).c_str());
 
-  // libjuice does not connect over TCP, but counts TCP candidates towards its limit of 30
+  // libjuice does not connect over TCP, but counts TCP candidates towards its candidate limit
   if (candidate.transportType() != rtc::Candidate::TransportType::Udp)
     return;
 
