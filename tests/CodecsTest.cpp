@@ -126,3 +126,45 @@ TEST(CodecsTest, NoParameterSetsInFrame)
   const std::vector<uint8_t> frame{0, 0, 0, 1, 0x41, 0x9a, 0x00};
   EXPECT_TRUE(ExtractParameterSets(Codec::H264, frame.data(), frame.size()).empty());
 }
+
+TEST(CodecsTest, H264PictureSize)
+{
+  // From a camera's 896x512 High profile stream
+  const auto sets =
+      GetParameterSets(Codec::H264, {"sprop-parameter-sets=Z2QAM6wTEqDgEGhAAAE9gAAlNQEA,aO48sA=="});
+  const auto size = GetPictureSize(Codec::H264, sets);
+  ASSERT_TRUE(size);
+  EXPECT_EQ(size->width, 896u);
+  EXPECT_EQ(size->height, 512u);
+}
+
+TEST(CodecsTest, H264PictureSizeWithCropping)
+{
+  // 1920x1080, coded as 1920x1088
+  const std::vector<uint8_t> sps{0,    0,    0,    1,    0x67, 0x42, 0x00,
+                                 0x28, 0xda, 0x01, 0xe0, 0x08, 0x9f, 0x95};
+  const auto size = GetPictureSize(Codec::H264, sps);
+  ASSERT_TRUE(size);
+  EXPECT_EQ(size->width, 1920u);
+  EXPECT_EQ(size->height, 1080u);
+}
+
+TEST(CodecsTest, H265PictureSize)
+{
+  // From a camera's 3840x2160 stream, with emulation prevention bytes
+  const auto sets = GetParameterSets(
+      Codec::H265,
+      {"sprop-vps=QAEMAf//AWAAAAMAAAMAAAMAAAMAlqwJ;"
+       "sprop-sps=QgEBAWAAAAMAAAMAAAMAAAMAlqAB4CACHH+JrTkokuyA;sprop-pps=RAHAcvA7JA=="});
+  const auto size = GetPictureSize(Codec::H265, sets);
+  ASSERT_TRUE(size);
+  EXPECT_EQ(size->width, 3840u);
+  EXPECT_EQ(size->height, 2160u);
+}
+
+TEST(CodecsTest, NoPictureSize)
+{
+  EXPECT_FALSE(GetPictureSize(Codec::H264, {}));
+  // Truncated SPS
+  EXPECT_FALSE(GetPictureSize(Codec::H264, {0, 0, 0, 1, 0x67, 0x42, 0x00}));
+}

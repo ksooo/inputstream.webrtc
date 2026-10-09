@@ -119,6 +119,13 @@ bool CInputStream::GetStream(int streamid, kodi::addon::InputstreamInfo& stream)
   if (IsVideo(info->codec))
   {
     stream.SetStreamType(INPUTSTREAM_TYPE_VIDEO);
+    // Android's MediaCodec decoders need the size up front and take the aspect ratio only from here
+    if (const auto size = GetPictureSize(info->codec, info->extraData))
+    {
+      stream.SetWidth(size->width);
+      stream.SetHeight(size->height);
+      stream.SetAspect(static_cast<float>(size->width) / static_cast<float>(size->height));
+    }
   }
   else
   {

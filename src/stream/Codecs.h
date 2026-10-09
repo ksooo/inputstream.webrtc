@@ -39,6 +39,12 @@ struct CodecInfo
   unsigned int channels{0}; // audio only
 };
 
+struct PictureSize
+{
+  unsigned int width;
+  unsigned int height;
+};
+
 bool IsVideo(Codec codec);
 
 /*!
@@ -68,5 +74,10 @@ std::vector<uint8_t> ExtractParameterSets(Codec codec, const uint8_t* data, size
  *        sprop-vps/sps/pps), each preceded by an Annex B start code.
  */
 std::vector<uint8_t> GetParameterSets(Codec codec, const std::vector<std::string>& fmtps);
+
+/*!
+ * \brief The picture size from the sequence parameter set among Annex B parameter sets.
+ */
+std::optional<PictureSize> GetPictureSize(Codec codec, const std::vector<uint8_t>& parameterSets);
 
 } // namespace WEBRTC
