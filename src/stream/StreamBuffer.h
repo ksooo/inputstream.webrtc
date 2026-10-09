@@ -88,15 +88,27 @@ public:
   Result Pop(std::chrono::milliseconds timeout, MediaPacket& packet);
 
 private:
+  struct QueuedPacket
+  {
+    MediaPacket packet;
+    std::chrono::steady_clock::time_point queued;
+  };
+
+  void UpdateStatistics(std::chrono::steady_clock::time_point queued);
+
   const size_t m_maxBytes;
   mutable std::mutex m_mutex;
   std::condition_variable m_changed;
   std::map<int, StreamInfo> m_streams;
-  std::deque<MediaPacket> m_packets;
+  std::deque<QueuedPacket> m_packets;
   size_t m_bytes{0};
   bool m_streamsChanged{false};
   bool m_ended{false};
   bool m_aborted{false};
+  std::chrono::steady_clock::time_point m_statisticsStart{std::chrono::steady_clock::now()};
+  unsigned int m_readPackets{0};
+  std::chrono::microseconds m_totalWait{0};
+  std::chrono::microseconds m_maxWait{0};
 };
 
 } // namespace WEBRTC

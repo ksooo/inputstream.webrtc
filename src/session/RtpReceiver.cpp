@@ -87,10 +87,11 @@ void CRtpReceiver::incoming(rtc::message_vector& messages, const rtc::message_ca
     if (const unsigned int lost = m_sequence.Update(header->seqNumber()); lost > 0)
     {
       const auto codec = m_codecs.find(header->payloadType());
-      if (codec != m_codecs.end() && IsVideo(codec->second))
+      if (codec != m_codecs.end())
       {
-        Log(LogLevel::LEVEL_DEBUG, "Lost %u video packets", lost);
-        RequestKeyframe(send);
+        Log(LogLevel::LEVEL_DEBUG, "Lost %u %s packets", lost, GetKodiCodecName(codec->second));
+        if (IsVideo(codec->second))
+          RequestKeyframe(send);
       }
     }
 

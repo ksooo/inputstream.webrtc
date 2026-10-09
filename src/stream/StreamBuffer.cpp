@@ -15,6 +15,13 @@
 namespace WEBRTC
 {
 
+namespace
+{
+
+constexpr std::chrono::seconds STATISTICS_INTERVAL{5};
+
+} // namespace
+
 CStreamBuffer::CStreamBuffer(size_t maxBytes) : m_maxBytes(maxBytes)
 {
 }
@@ -35,11 +42,11 @@ void CStreamBuffer::Push(MediaPacket packet)
   {
     std::lock_guard lock(m_mutex);
     m_bytes += packet.data.size();
-    m_packets.emplace_back(std::move(packet));
+    m_packets.push_back({std::move(packet), std::chrono::steady_clock::now()});
     size_t dropped = 0;
     while (m_bytes > m_maxBytes && m_packets.size() > 1)
     {
-      m_bytes -= m_packets.front().data.size();
+      m_bytes -= m_packets.front().packet.data.size();
       m_packets.pop_front();
       ++dropped;
     }
@@ -119,12 +126,37 @@ CStreamBuffer::Result CStreamBuffer::Pop(std::chrono::milliseconds timeout, Medi
   }
   if (!m_packets.empty())
   {
-    packet = std::move(m_packets.front());
+    const auto queued = m_packets.front().queued;
+    packet = std::move(m_packets.front().packet);
     m_packets.pop_front();
     m_bytes -= packet.data.size();
+    UpdateStatistics(queued);
     return Result::PACKET;
   }
   return m_ended ? Result::ENDED : Result::NONE;
+}
+
+void CStreamBuffer::UpdateStatistics(std::chrono::steady_clock::time_point queued)
+{
+  const auto now = std::chrono::steady_clock::now();
+  const auto wait = std::chrono::duration_cast<std::chrono::microseconds>(now - queued);
+  ++m_readPackets;
+  m_totalWait += wait;
+  m_maxWait = std::max(m_maxWait, wait);
+
+  if (now - m_statisticsStart < STATISTICS_INTERVAL)
+    return;
+  Log(LogLevel::LEVEL_DEBUG,
+      "Kodi read %u packets in %lld s, waiting %lld ms on average and at most %lld ms",
+      m_readPackets,
+      static_cast<long long>(
+          std::chrono::duration_cast<std::chrono::seconds>(now - m_statisticsStart).count()),
+      static_cast<long long>(m_totalWait.count() / m_readPackets / 1000),
+      static_cast<long long>(m_maxWait.count() / 1000));
+  m_statisticsStart = now;
+  m_readPackets = 0;
+  m_totalWait = {};
+  m_maxWait = {};
 }
 
 } // namespace WEBRTC
