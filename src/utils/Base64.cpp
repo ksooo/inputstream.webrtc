@@ -8,15 +8,20 @@
 #include "Base64.h"
 
 #include <cstdint>
+#include <cstring>
 
 namespace WEBRTC
 {
 
+namespace
+{
+
+constexpr const char* ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+} // namespace
+
 std::string Base64Encode(std::string_view data)
 {
-  constexpr const char* ALPHABET =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
   std::string result;
   result.reserve((data.size() + 2) / 3 * 4);
 
@@ -49,6 +54,30 @@ std::string Base64Encode(std::string_view data)
     result += '=';
   }
 
+  return result;
+}
+
+std::optional<std::string> Base64Decode(std::string_view text)
+{
+  while (!text.empty() && text.back() == '=')
+    text.remove_suffix(1);
+
+  std::string result;
+  uint32_t block = 0;
+  int bits = 0;
+  for (const char c : text)
+  {
+    const char* position = std::strchr(ALPHABET, c);
+    if (c == '\0' || !position)
+      return {};
+    block = (block << 6) | static_cast<uint32_t>(position - ALPHABET);
+    bits += 6;
+    if (bits >= 8)
+    {
+      bits -= 8;
+      result += static_cast<char>((block >> bits) & 0xff);
+    }
+  }
   return result;
 }
 

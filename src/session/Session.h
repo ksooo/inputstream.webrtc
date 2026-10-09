@@ -20,6 +20,9 @@
 namespace WEBRTC
 {
 
+class CMediaStream;
+class CRtpReceiver;
+class CStreamBuffer;
 class ISignaling;
 
 struct SessionConfig
@@ -31,12 +34,13 @@ struct SessionConfig
 };
 
 /*!
- * \brief A WebRTC connection that receives video and optionally audio.
+ * \brief A WebRTC connection that receives video and optionally audio. The received video is
+ *        passed to the stream buffer, which also learns about the end of the connection.
  */
 class CSession
 {
 public:
-  explicit CSession(SessionConfig config);
+  CSession(SessionConfig config, std::shared_ptr<CStreamBuffer> buffer);
   ~CSession();
 
   CSession(const CSession&) = delete;
@@ -46,6 +50,13 @@ public:
    * \brief Negotiates the session through the signaling and waits until it is connected.
    */
   bool Connect(ISignaling& signaling);
+
+  /*!
+   * \brief Requests keyframes until the first one arrives; a request sent right after connecting
+   *        can get lost while the remote side still completes the connection.
+   */
+  bool WaitForVideo(std::chrono::milliseconds timeout);
+
   void Close();
 
   std::shared_ptr<rtc::Track> GetVideoTrack() const { return m_videoTrack; }
@@ -57,10 +68,13 @@ private:
   void LogNegotiatedCodecs() const;
 
   const SessionConfig m_config;
+  const std::shared_ptr<CStreamBuffer> m_buffer;
   std::shared_ptr<State> m_state;
   std::shared_ptr<rtc::PeerConnection> m_peerConnection;
   std::shared_ptr<rtc::Track> m_videoTrack;
   std::shared_ptr<rtc::Track> m_audioTrack;
+  std::shared_ptr<CRtpReceiver> m_videoReceiver;
+  std::shared_ptr<CMediaStream> m_videoStream;
 };
 
 } // namespace WEBRTC

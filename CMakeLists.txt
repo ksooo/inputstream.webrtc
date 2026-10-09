@@ -23,10 +23,17 @@ set(WEBRTC_CORE_SOURCES src/StreamProperties.cpp
                         src/ha/HaSignaling.cpp
                         src/session/Candidates.cpp
                         src/session/IceServers.cpp
+                        src/session/RtpReceiver.cpp
                         src/session/Session.cpp
+                        src/stream/Codecs.cpp
+                        src/stream/MediaStream.cpp
+                        src/stream/RtpClock.cpp
+                        src/stream/SequenceTracker.cpp
+                        src/stream/StreamBuffer.cpp
                         src/utils/Base64.cpp
                         src/utils/CaBundle.cpp
                         src/utils/RtcLog.cpp
+                        src/utils/StringUtils.cpp
                         src/utils/Url.cpp
                         src/whep/WhepClient.cpp)
 
@@ -34,12 +41,19 @@ set(WEBRTC_CORE_HEADERS src/StreamProperties.h
                         src/ha/HaSignaling.h
                         src/session/Candidates.h
                         src/session/IceServers.h
+                        src/session/RtpReceiver.h
                         src/session/Session.h
                         src/session/Signaling.h
+                        src/stream/Codecs.h
+                        src/stream/MediaStream.h
+                        src/stream/RtpClock.h
+                        src/stream/SequenceTracker.h
+                        src/stream/StreamBuffer.h
                         src/utils/Base64.h
                         src/utils/CaBundle.h
                         src/utils/Log.h
                         src/utils/RtcLog.h
+                        src/utils/StringUtils.h
                         src/utils/Url.h
                         src/whep/HttpTransport.h
                         src/whep/WhepClient.h)

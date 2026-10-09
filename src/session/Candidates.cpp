@@ -7,7 +7,8 @@
 
 #include "Candidates.h"
 
-#include <cctype>
+#include "utils/StringUtils.h"
+
 #include <sstream>
 
 namespace WEBRTC
@@ -27,9 +28,7 @@ bool IsTcpCandidate(const std::string& line)
   std::string component;
   std::string transport;
   fields >> foundation >> component >> transport;
-  for (char& c : transport)
-    c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-  return transport == "tcp";
+  return ToLower(transport) == "tcp";
 }
 
 } // namespace
