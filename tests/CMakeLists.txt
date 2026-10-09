@@ -2,8 +2,13 @@ set(BINARY ${CMAKE_PROJECT_NAME}_test)
 
 list(TRANSFORM WEBRTC_CORE_SOURCES PREPEND ${PROJECT_SOURCE_DIR}/)
 
-add_executable(${BINARY} LogStub.cpp
+add_executable(${BINARY} CaBundleTest.cpp
+                         HaSignalingTest.cpp
+                         IceServersTest.cpp
+                         LogStub.cpp
                          RtcLogTest.cpp
+                         SessionTest.cpp
+                         StreamPropertiesTest.cpp
                          TestMain.cpp
                          ${WEBRTC_CORE_SOURCES})
 

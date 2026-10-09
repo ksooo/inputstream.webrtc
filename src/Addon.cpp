@@ -10,12 +10,20 @@
 #include "InputStream.h"
 #include "utils/RtcLog.h"
 
+#include <rtc/global.hpp>
+
 namespace WEBRTC
 {
 
 CAddon::CAddon()
 {
   InitRtcLog();
+}
+
+CAddon::~CAddon()
+{
+  // The threads of libdatachannel must not outlive the add-on library
+  rtc::Cleanup().wait();
 }
 
 ADDON_STATUS CAddon::CreateInstance(const kodi::addon::IInstanceInfo& instance,

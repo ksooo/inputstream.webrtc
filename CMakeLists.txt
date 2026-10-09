@@ -10,16 +10,29 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR})
 
 find_package(Kodi REQUIRED)
 find_package(LibDataChannel REQUIRED)
+find_package(NlohmannJSON REQUIRED)
 
 include_directories(${KODI_INCLUDE_DIR}/.. # Hack way with "/..", need bigger Kodi cmake rework to match right include ways
                     ${LIBDATACHANNEL_INCLUDE_DIRS}
+                    ${NLOHMANNJSON_INCLUDE_DIRS}
                     ${PROJECT_SOURCE_DIR}/src)
 add_compile_definitions(${LIBDATACHANNEL_DEFINITIONS})
 
 # Sources that do not depend on Kodi; shared with the unit tests
-set(WEBRTC_CORE_SOURCES src/utils/RtcLog.cpp)
+set(WEBRTC_CORE_SOURCES src/StreamProperties.cpp
+                        src/ha/HaSignaling.cpp
+                        src/session/IceServers.cpp
+                        src/session/Session.cpp
+                        src/utils/CaBundle.cpp
+                        src/utils/RtcLog.cpp)
 
-set(WEBRTC_CORE_HEADERS src/utils/Log.h
+set(WEBRTC_CORE_HEADERS src/StreamProperties.h
+                        src/ha/HaSignaling.h
+                        src/session/IceServers.h
+                        src/session/Session.h
+                        src/session/Signaling.h
+                        src/utils/CaBundle.h
+                        src/utils/Log.h
                         src/utils/RtcLog.h)
 
 set(WEBRTC_SOURCES ${WEBRTC_CORE_SOURCES}

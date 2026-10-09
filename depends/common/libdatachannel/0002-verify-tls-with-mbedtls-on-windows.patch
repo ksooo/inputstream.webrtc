@@ -1,0 +1,11 @@
+--- a/src/impl/websocket.cpp
++++ b/src/impl/websocket.cpp
+@@ -371,7 +371,7 @@
+ 
+ 		bool verify = mHostname.has_value() && !config.disableTlsVerification;
+ 
+-#ifdef _WIN32
++#if defined(_WIN32) && !USE_MBEDTLS
+ 		if (std::exchange(verify, false)) {
+ 			PLOG_WARNING << "TLS certificate verification with root CA is not supported on Windows";
+ 		}

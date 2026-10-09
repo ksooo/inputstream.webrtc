@@ -16,6 +16,7 @@ class ATTR_DLL_LOCAL CAddon : public kodi::addon::CAddonBase
 {
 public:
   CAddon();
+  ~CAddon() override;
 
   ADDON_STATUS CreateInstance(const kodi::addon::IInstanceInfo& instance,
                               KODI_ADDON_INSTANCE_HDL& hdl) override;
