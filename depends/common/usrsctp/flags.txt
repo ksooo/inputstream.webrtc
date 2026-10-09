@@ -1,0 +1,1 @@
+-Dsctp_build_programs=0 -Dsctp_werror=0 -Dsctp_debug=0 -Dsctp_inet=0 -Dsctp_inet6=0

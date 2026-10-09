@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<addon
+  id="inputstream.webrtc"
+  version="22.0.0"
+  name="WebRTC Inputstream"
+  provider-name="ksooo">
+  <requires>@ADDON_DEPENDS@</requires>
+  <extension
+    point="kodi.inputstream"
+    name="webrtc"
+    extension=""
+    listitemprops="bearer_token|ice_servers|audio"
+    library_@PLATFORM@="@LIBRARY_FILENAME@"/>
+  <extension point="xbmc.addon.metadata">
+    <platform>@PLATFORM@</platform>
+    <license>GPL-2.0-or-later</license>
+    <source>https://github.com/ksooo/inputstream.webrtc</source>
+    <assets>
+      <icon>icon.png</icon>
+    </assets>
+    <summary lang="en_GB">WebRTC live streams via WHEP</summary>
+    <description lang="en_GB">Plays WebRTC live streams, such as camera feeds, from servers that support the WebRTC-HTTP Egress Protocol (WHEP), e.g. MediaMTX or go2rtc.</description>
+    <summary lang="de_DE">WebRTC-Livestreams über WHEP</summary>
+    <description lang="de_DE">WebRTC-Livestreams wie Kamerabilder von Servern abspielen, die das WebRTC-HTTP Egress Protocol (WHEP) unterstützen, z. B. MediaMTX oder go2rtc.</description>
+    <news>v22.0.0
+- Initial version
+</news>
+  </extension>
+</addon>

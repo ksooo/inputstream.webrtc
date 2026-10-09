@@ -1,0 +1,13 @@
+--- a/include/mbedtls/mbedtls_config.h
++++ b/include/mbedtls/mbedtls_config.h
+@@ -4193,6 +4193,10 @@
+  * can be changed at run time.
+  */
+ //#define MBEDTLS_PLATFORM_DEV_RANDOM "/dev/random"
++/* getrandom() is only used with glibc, and /dev/random blocks on kernels before 5.6 */
++#if defined(__ANDROID__)
++#define MBEDTLS_PLATFORM_DEV_RANDOM "/dev/urandom"
++#endif
+ 
+ /** \def MBEDTLS_CHECK_RETURN
+  *
