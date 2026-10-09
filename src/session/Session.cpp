@@ -33,6 +33,7 @@ namespace
 constexpr const char* VIDEO_MID = "video";
 constexpr int VIDEO_STREAM_ID = 1;
 constexpr std::chrono::milliseconds KEYFRAME_REQUEST_INTERVAL{500};
+constexpr std::chrono::milliseconds MAX_GATHERING_TIME{2000};
 
 constexpr int PAYLOAD_TYPE_H264_BASELINE = 96;
 constexpr int PAYLOAD_TYPE_H264_MAIN = 97;
@@ -156,13 +157,13 @@ bool CSession::Connect(ISignaling& signaling)
 
     m_peerConnection->setLocalDescription(rtc::Description::Type::Offer);
     {
+      // A STUN or TURN server that does not answer must not hold up the offer; the local
+      // candidates are there at once
       std::unique_lock lock(m_state->mutex);
-      if (!m_state->changed.wait_until(lock, deadline,
-                                       [this] { return m_state->gatheringComplete; }))
-      {
-        Log(LogLevel::LEVEL_ERROR, "Timed out gathering ICE candidates");
-        return false;
-      }
+      if (!m_state->changed.wait_until(
+              lock, std::min(deadline, std::chrono::steady_clock::now() + MAX_GATHERING_TIME),
+              [this] { return m_state->gatheringComplete; }))
+        Log(LogLevel::LEVEL_INFO, "Sending the offer before all ICE candidates were gathered");
     }
 
     const auto answer =

@@ -6,6 +6,7 @@
  */
 
 #include "LogStub.h"
+#include "session/IceServers.h"
 #include "session/Session.h"
 #include "session/Signaling.h"
 #include "stream/StreamBuffer.h"
@@ -19,7 +20,18 @@
 #include <thread>
 #include <vector>
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#endif
+
 #include <gtest/gtest.h>
+#include <rtc/global.hpp>
 #include <rtc/h264rtppacketizer.hpp>
 #include <rtc/peerconnection.hpp>
 #include <rtc/plihandler.hpp>
@@ -151,6 +163,44 @@ private:
   int m_keyframeRequests{0};
 };
 
+// A UDP port that receives but never answers, like an unreachable TURN server
+class CSilentServer
+{
+public:
+  CSilentServer()
+  {
+    // Initializes the sockets on Windows
+    rtc::Preload();
+    m_socket = socket(AF_INET, SOCK_DGRAM, 0);
+    sockaddr_in address{};
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    bind(m_socket, reinterpret_cast<sockaddr*>(&address), sizeof(address));
+    socklen_t length = sizeof(address);
+    getsockname(m_socket, reinterpret_cast<sockaddr*>(&address), &length);
+    m_port = ntohs(address.sin_port);
+  }
+
+  ~CSilentServer()
+  {
+#ifdef _WIN32
+    closesocket(m_socket);
+#else
+    close(m_socket);
+#endif
+  }
+
+  uint16_t GetPort() const { return m_port; }
+
+private:
+#ifdef _WIN32
+  SOCKET m_socket;
+#else
+  int m_socket;
+#endif
+  uint16_t m_port{0};
+};
+
 std::shared_ptr<CStreamBuffer> MakeBuffer()
 {
   return std::make_shared<CStreamBuffer>();
@@ -279,4 +329,18 @@ TEST(SessionTest, WaitForVideoWhenTrackIsNotOpen)
   bool received = true;
   EXPECT_NO_THROW(received = session.WaitForVideo(1s));
   EXPECT_FALSE(received);
+}
+
+TEST(SessionTest, DoesNotWaitForSilentTurnServer)
+{
+  CSilentServer turnServer;
+  CLoopbackSignaling signaling;
+  CSession session(
+      {ParseIceServers({"turn:user:pass@127.0.0.1:" + std::to_string(turnServer.GetPort())}), false,
+       10s, BIND_ADDRESS},
+      MakeBuffer());
+
+  const auto start = std::chrono::steady_clock::now();
+  EXPECT_TRUE(session.Connect(signaling));
+  EXPECT_LT(std::chrono::steady_clock::now() - start, 5s);
 }
