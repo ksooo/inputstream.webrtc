@@ -21,28 +21,39 @@ add_compile_definitions(${LIBDATACHANNEL_DEFINITIONS})
 # Sources that do not depend on Kodi; shared with the unit tests
 set(WEBRTC_CORE_SOURCES src/StreamProperties.cpp
                         src/ha/HaSignaling.cpp
+                        src/session/Candidates.cpp
                         src/session/IceServers.cpp
                         src/session/Session.cpp
+                        src/utils/Base64.cpp
                         src/utils/CaBundle.cpp
-                        src/utils/RtcLog.cpp)
+                        src/utils/RtcLog.cpp
+                        src/utils/Url.cpp
+                        src/whep/WhepClient.cpp)
 
 set(WEBRTC_CORE_HEADERS src/StreamProperties.h
                         src/ha/HaSignaling.h
+                        src/session/Candidates.h
                         src/session/IceServers.h
                         src/session/Session.h
                         src/session/Signaling.h
+                        src/utils/Base64.h
                         src/utils/CaBundle.h
                         src/utils/Log.h
-                        src/utils/RtcLog.h)
+                        src/utils/RtcLog.h
+                        src/utils/Url.h
+                        src/whep/HttpTransport.h
+                        src/whep/WhepClient.h)
 
 set(WEBRTC_SOURCES ${WEBRTC_CORE_SOURCES}
                    src/Addon.cpp
                    src/InputStream.cpp
-                   src/utils/Log.cpp)
+                   src/utils/Log.cpp
+                   src/whep/KodiHttpTransport.cpp)
 
 set(WEBRTC_HEADERS ${WEBRTC_CORE_HEADERS}
                    src/Addon.h
-                   src/InputStream.h)
+                   src/InputStream.h
+                   src/whep/KodiHttpTransport.h)
 
 list(APPEND DEPLIBS ${LIBDATACHANNEL_LIBRARIES})
 

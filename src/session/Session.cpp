@@ -7,6 +7,7 @@
 
 #include "Session.h"
 
+#include "Candidates.h"
 #include "Signaling.h"
 #include "utils/Log.h"
 
@@ -170,7 +171,7 @@ bool CSession::Connect(ISignaling& signaling)
       return false;
 
     m_peerConnection->setRemoteDescription(
-        rtc::Description(*answer, rtc::Description::Type::Answer));
+        rtc::Description(RemoveTcpCandidates(*answer), rtc::Description::Type::Answer));
 
     std::vector<rtc::Candidate> pendingCandidates;
     {
