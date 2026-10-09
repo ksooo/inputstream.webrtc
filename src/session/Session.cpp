@@ -105,7 +105,9 @@ CSession::ReceivingTrack CSession::AddReceivingTrack(const rtc::Description::Med
   receivingTrack.stream = std::make_shared<CMediaStream>(streamId, m_buffer, m_start);
   receivingTrack.track->onFrame(
       [stream = receivingTrack.stream](rtc::binary data, rtc::FrameInfo info)
-      { stream->OnFrame(data, info.payloadType, info.timestamp); });
+      {
+        stream->OnFrame(data, info.payloadType, info.timestamp, std::chrono::steady_clock::now());
+      });
   return receivingTrack;
 }
 

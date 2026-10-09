@@ -40,7 +40,10 @@ public:
                std::chrono::steady_clock::time_point sessionStart);
 
   void SetCodecs(std::map<int, CodecInfo> codecs);
-  void OnFrame(const std::vector<std::byte>& data, int payloadType, uint32_t timestamp);
+  void OnFrame(const std::vector<std::byte>& data,
+               int payloadType,
+               uint32_t timestamp,
+               std::chrono::steady_clock::time_point arrival);
 
 private:
   const int m_streamId;

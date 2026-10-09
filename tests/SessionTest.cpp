@@ -324,6 +324,8 @@ TEST(SessionTest, ReceivesVideo)
   auto video = std::async(std::launch::async, [&session] { return session.WaitForVideo(5s); });
   ASSERT_TRUE(signaling.WaitForKeyframeRequest());
   ASSERT_TRUE(signaling.SendVideoFrame(frame, 3000));
+  // In real time, not like buffered frames
+  std::this_thread::sleep_for(100ms);
   ASSERT_TRUE(signaling.SendVideoFrame(frame, 6000));
   ASSERT_TRUE(video.get());
 
@@ -383,28 +385,27 @@ TEST(SessionTest, ReceivesAudio)
   CSession session({{}, true, 10s, BIND_ADDRESS}, buffer);
   ASSERT_TRUE(session.Connect(signaling));
 
-  ASSERT_TRUE(signaling.SendAudioFrame(frame, 960));
-  ASSERT_TRUE(signaling.SendAudioFrame(frame, 1920));
-  ASSERT_TRUE(buffer->WaitForVideo(5s));
+  // Like a source, send in real time. Early frames may arrive together, like buffered ones.
+  std::vector<MediaPacket> packets;
+  MediaPacket packet;
+  for (uint32_t timestamp = 960; packets.size() < 3 && timestamp <= 250 * 960; timestamp += 960)
+  {
+    ASSERT_TRUE(signaling.SendAudioFrame(frame, timestamp));
+    std::this_thread::sleep_for(20ms);
+    if (buffer->Pop(0ms, packet) == CStreamBuffer::Result::PACKET)
+      packets.emplace_back(packet);
+  }
+  ASSERT_EQ(packets.size(), 3u);
+  EXPECT_EQ(packets[0].streamId, 2);
+  EXPECT_EQ(packets[0].data, frame);
+  // 960 samples at 48 kHz
+  EXPECT_EQ(packets[2].pts - packets[1].pts, 20000);
 
   const auto stream = buffer->GetStream(2);
   ASSERT_TRUE(stream);
   EXPECT_EQ(stream->codec, Codec::OPUS);
   EXPECT_EQ(stream->sampleRate, 48000u);
   EXPECT_EQ(stream->channels, 2u);
-
-  std::vector<MediaPacket> packets;
-  MediaPacket packet;
-  for (int i = 0; i < 100 && packets.size() < 2; ++i)
-  {
-    if (buffer->Pop(50ms, packet) == CStreamBuffer::Result::PACKET)
-      packets.emplace_back(packet);
-  }
-  ASSERT_EQ(packets.size(), 2u);
-  EXPECT_EQ(packets[0].streamId, 2);
-  EXPECT_EQ(packets[0].data, frame);
-  // 960 samples at 48 kHz
-  EXPECT_EQ(packets[1].pts - packets[0].pts, 20000);
 
   session.Close();
   signaling.Close();

@@ -30,7 +30,10 @@ void CMediaStream::SetCodecs(std::map<int, CodecInfo> codecs)
   m_codecs = std::move(codecs);
 }
 
-void CMediaStream::OnFrame(const std::vector<std::byte>& data, int payloadType, uint32_t timestamp)
+void CMediaStream::OnFrame(const std::vector<std::byte>& data,
+                           int payloadType,
+                           uint32_t timestamp,
+                           std::chrono::steady_clock::time_point arrival)
 {
   std::lock_guard lock(m_mutex);
 
@@ -67,14 +70,16 @@ void CMediaStream::OnFrame(const std::vector<std::byte>& data, int payloadType, 
   }
 
   if (!m_clock)
-  {
-    const auto start = std::chrono::duration_cast<std::chrono::microseconds>(
-        std::chrono::steady_clock::now() - m_sessionStart);
-    m_clock.emplace(codec->second.clockRate, start.count());
-  }
+    m_clock.emplace(codec->second.clockRate);
 
-  m_buffer->Push({m_streamId, std::vector<uint8_t>(bytes, bytes + data.size()),
-                  m_clock->ToPresentationTime(timestamp)});
+  const int64_t sinceStart =
+      std::chrono::duration_cast<std::chrono::microseconds>(arrival - m_sessionStart).count();
+  const auto time = m_clock->ToPresentationTime(timestamp, sinceStart);
+  // Buffered audio is of no use; video frames are needed to decode the following ones
+  if (time.catchingUp && !IsVideo(codec->second.codec))
+    return;
+
+  m_buffer->Push({m_streamId, std::vector<uint8_t>(bytes, bytes + data.size()), time.pts});
 }
 
 } // namespace WEBRTC
