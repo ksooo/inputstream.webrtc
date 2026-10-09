@@ -26,6 +26,8 @@ struct StreamInfo
   int id;
   Codec codec;
   std::vector<uint8_t> extraData;
+  uint32_t sampleRate{0}; // audio only
+  unsigned int channels{0}; // audio only
 };
 
 struct MediaPacket
@@ -73,9 +75,9 @@ public:
   void Flush();
 
   /*!
-   * \return True as soon as there is a stream, false on timeout or end.
+   * \return True as soon as there is a video stream, false on timeout or end.
    */
-  bool WaitForStreams(std::chrono::milliseconds timeout);
+  bool WaitForVideo(std::chrono::milliseconds timeout);
 
   /*!
    * \brief The streams; also takes note that Kodi knows about them.

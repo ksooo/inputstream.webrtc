@@ -21,8 +21,8 @@ namespace WEBRTC
 {
 
 /*!
- * \brief Assembles the frames of a video track with the depacketizer for the codec of each
- *        packet, and requests a keyframe when packets were lost. Belongs in front of the
+ * \brief Assembles the frames of a track with the depacketizer for the codec of each packet,
+ *        and requests a keyframe when video packets were lost. Belongs in front of the
  *        RtcpReceivingSession in the chain of handlers, which receives first and sends the request.
  */
 class CRtpReceiver : public rtc::MediaHandler

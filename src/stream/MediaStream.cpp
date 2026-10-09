@@ -41,20 +41,29 @@ void CMediaStream::OnFrame(const std::vector<std::byte>& data, int payloadType, 
   if (payloadType != m_payloadType)
   {
     m_payloadType = payloadType;
-    m_keyframeReceived = false;
+    m_announced = false;
   }
 
   const auto* bytes = reinterpret_cast<const uint8_t*>(data.data());
-  if (!m_keyframeReceived)
+  if (!m_announced)
   {
-    if (!IsKeyframe(codec->second.codec, bytes, data.size()))
-      return;
-    Log(LogLevel::LEVEL_INFO, "Receiving %s", GetKodiCodecName(codec->second.codec));
-    m_keyframeReceived = true;
-    std::vector<uint8_t> extraData = codec->second.extraData;
-    if (extraData.empty())
-      extraData = ExtractParameterSets(codec->second.codec, bytes, data.size());
-    m_buffer->SetStream({m_streamId, codec->second.codec, std::move(extraData)});
+    const CodecInfo& info = codec->second;
+    StreamInfo stream{m_streamId, info.codec, info.extraData};
+    if (IsVideo(info.codec))
+    {
+      if (!IsKeyframe(info.codec, bytes, data.size()))
+        return;
+      if (stream.extraData.empty())
+        stream.extraData = ExtractParameterSets(info.codec, bytes, data.size());
+    }
+    else
+    {
+      stream.sampleRate = info.clockRate;
+      stream.channels = info.channels;
+    }
+    Log(LogLevel::LEVEL_INFO, "Receiving %s", GetKodiCodecName(info.codec));
+    m_announced = true;
+    m_buffer->SetStream(std::move(stream));
   }
 
   if (!m_clock)

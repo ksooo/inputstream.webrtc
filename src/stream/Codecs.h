@@ -25,7 +25,10 @@ namespace WEBRTC
 enum class Codec
 {
   H264,
-  H265
+  H265,
+  OPUS,
+  PCMU,
+  PCMA
 };
 
 struct CodecInfo
@@ -33,7 +36,10 @@ struct CodecInfo
   Codec codec;
   uint32_t clockRate;
   std::vector<uint8_t> extraData; // parameter sets from the SDP, Annex B
+  unsigned int channels{0}; // audio only
 };
+
+bool IsVideo(Codec codec);
 
 /*!
  * \brief The codec name Kodi uses for a codec.

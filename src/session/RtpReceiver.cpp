@@ -12,6 +12,7 @@
 #include <rtc/h264rtpdepacketizer.hpp>
 #include <rtc/h265rtpdepacketizer.hpp>
 #include <rtc/rtp.hpp>
+#include <rtc/rtpdepacketizer.hpp>
 
 namespace WEBRTC
 {
@@ -49,6 +50,15 @@ std::shared_ptr<rtc::MediaHandler> CRtpReceiver::GetDepacketizer(int payloadType
     case Codec::H265:
       depacketizer = std::make_shared<rtc::H265RtpDepacketizer>();
       break;
+    case Codec::OPUS:
+      depacketizer = std::make_shared<rtc::OpusRtpDepacketizer>();
+      break;
+    case Codec::PCMU:
+      depacketizer = std::make_shared<rtc::PCMURtpDepacketizer>();
+      break;
+    case Codec::PCMA:
+      depacketizer = std::make_shared<rtc::PCMARtpDepacketizer>();
+      break;
   }
   m_depacketizers.emplace(payloadType, depacketizer);
   return depacketizer;
@@ -76,8 +86,12 @@ void CRtpReceiver::incoming(rtc::message_vector& messages, const rtc::message_ca
     const auto* header = reinterpret_cast<const rtc::RtpHeader*>(message->data());
     if (const unsigned int lost = m_sequence.Update(header->seqNumber()); lost > 0)
     {
-      Log(LogLevel::LEVEL_DEBUG, "Lost %u video packets", lost);
-      RequestKeyframe(send);
+      const auto codec = m_codecs.find(header->payloadType());
+      if (codec != m_codecs.end() && IsVideo(codec->second))
+      {
+        Log(LogLevel::LEVEL_DEBUG, "Lost %u video packets", lost);
+        RequestKeyframe(send);
+      }
     }
 
     const auto depacketizer = GetDepacketizer(header->payloadType());

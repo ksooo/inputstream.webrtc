@@ -9,6 +9,7 @@
 
 #include "utils/Log.h"
 
+#include <algorithm>
 #include <utility>
 
 namespace WEBRTC
@@ -74,11 +75,16 @@ void CStreamBuffer::Flush()
   m_aborted = false;
 }
 
-bool CStreamBuffer::WaitForStreams(std::chrono::milliseconds timeout)
+bool CStreamBuffer::WaitForVideo(std::chrono::milliseconds timeout)
 {
+  const auto hasVideo = [this]
+  {
+    return std::any_of(m_streams.begin(), m_streams.end(),
+                       [](const auto& stream) { return IsVideo(stream.second.codec); });
+  };
   std::unique_lock lock(m_mutex);
-  m_changed.wait_for(lock, timeout, [this] { return !m_streams.empty() || m_ended; });
-  return !m_streams.empty();
+  m_changed.wait_for(lock, timeout, [&] { return hasVideo() || m_ended; });
+  return hasVideo();
 }
 
 std::vector<StreamInfo> CStreamBuffer::GetStreams()

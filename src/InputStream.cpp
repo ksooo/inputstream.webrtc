@@ -116,7 +116,16 @@ bool CInputStream::GetStream(int streamid, kodi::addon::InputstreamInfo& stream)
   if (!info)
     return false;
 
-  stream.SetStreamType(INPUTSTREAM_TYPE_VIDEO);
+  if (IsVideo(info->codec))
+  {
+    stream.SetStreamType(INPUTSTREAM_TYPE_VIDEO);
+  }
+  else
+  {
+    stream.SetStreamType(INPUTSTREAM_TYPE_AUDIO);
+    stream.SetSampleRate(info->sampleRate);
+    stream.SetChannels(info->channels);
+  }
   stream.SetCodecName(GetKodiCodecName(info->codec));
   stream.SetPhysicalIndex(static_cast<unsigned int>(info->id));
   if (!info->extraData.empty())

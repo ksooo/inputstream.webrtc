@@ -31,7 +31,9 @@ namespace
 {
 
 constexpr const char* VIDEO_MID = "video";
+constexpr const char* AUDIO_MID = "audio";
 constexpr int VIDEO_STREAM_ID = 1;
+constexpr int AUDIO_STREAM_ID = 2;
 constexpr std::chrono::milliseconds KEYFRAME_REQUEST_INTERVAL{500};
 constexpr std::chrono::milliseconds MAX_GATHERING_TIME{2000};
 
@@ -92,9 +94,34 @@ CSession::~CSession()
   Close();
 }
 
+CSession::ReceivingTrack CSession::AddReceivingTrack(const rtc::Description::Media& description,
+                                                     int streamId)
+{
+  ReceivingTrack receivingTrack;
+  receivingTrack.track = m_peerConnection->addTrack(description);
+  receivingTrack.receiver = std::make_shared<CRtpReceiver>();
+  receivingTrack.track->setMediaHandler(receivingTrack.receiver);
+  receivingTrack.track->chainMediaHandler(std::make_shared<rtc::RtcpReceivingSession>());
+  receivingTrack.stream = std::make_shared<CMediaStream>(streamId, m_buffer, m_start);
+  receivingTrack.track->onFrame(
+      [stream = receivingTrack.stream](rtc::binary data, rtc::FrameInfo info)
+      { stream->OnFrame(data, info.payloadType, info.timestamp); });
+  return receivingTrack;
+}
+
+void CSession::SetCodecs(ReceivingTrack& receivingTrack, const std::string& mid)
+{
+  if (!receivingTrack.track)
+    return;
+  const auto codecs = GetCodecs(*m_peerConnection->remoteDescription(), mid);
+  receivingTrack.receiver->SetCodecs(codecs);
+  receivingTrack.stream->SetCodecs(codecs);
+}
+
 bool CSession::Connect(ISignaling& signaling)
 {
-  const auto deadline = std::chrono::steady_clock::now() + m_config.timeout;
+  m_start = std::chrono::steady_clock::now();
+  const auto deadline = m_start + m_config.timeout;
 
   try
   {
@@ -137,22 +164,15 @@ bool CSession::Connect(ISignaling& signaling)
     video.addH264Codec(PAYLOAD_TYPE_H264_MAIN, H264Profile("4d001f"));
     video.addH264Codec(PAYLOAD_TYPE_H264_HIGH, H264Profile("64001f"));
     video.addH265Codec(PAYLOAD_TYPE_H265);
-    m_videoTrack = m_peerConnection->addTrack(video);
-    m_videoReceiver = std::make_shared<CRtpReceiver>();
-    m_videoTrack->setMediaHandler(m_videoReceiver);
-    m_videoTrack->chainMediaHandler(std::make_shared<rtc::RtcpReceivingSession>());
-    m_videoStream =
-        std::make_shared<CMediaStream>(VIDEO_STREAM_ID, m_buffer, std::chrono::steady_clock::now());
-    m_videoTrack->onFrame([stream = m_videoStream](rtc::binary data, rtc::FrameInfo info)
-                          { stream->OnFrame(data, info.payloadType, info.timestamp); });
+    m_video = AddReceivingTrack(video, VIDEO_STREAM_ID);
 
     if (m_config.audio)
     {
-      rtc::Description::Audio audio("audio", rtc::Description::Direction::RecvOnly);
+      rtc::Description::Audio audio(AUDIO_MID, rtc::Description::Direction::RecvOnly);
       audio.addOpusCodec(PAYLOAD_TYPE_OPUS);
       audio.addPCMUCodec(PAYLOAD_TYPE_PCMU);
       audio.addPCMACodec(PAYLOAD_TYPE_PCMA);
-      m_audioTrack = m_peerConnection->addTrack(audio);
+      m_audio = AddReceivingTrack(audio, AUDIO_STREAM_ID);
     }
 
     m_peerConnection->setLocalDescription(rtc::Description::Type::Offer);
@@ -199,9 +219,8 @@ bool CSession::Connect(ISignaling& signaling)
       AddRemoteCandidate(*m_peerConnection, std::move(candidate));
 
     LogNegotiatedCodecs();
-    const auto videoCodecs = GetCodecs(*m_peerConnection->remoteDescription(), VIDEO_MID);
-    m_videoReceiver->SetCodecs(videoCodecs);
-    m_videoStream->SetCodecs(videoCodecs);
+    SetCodecs(m_video, VIDEO_MID);
+    SetCodecs(m_audio, AUDIO_MID);
 
     std::unique_lock lock(m_state->mutex);
     const bool settled = m_state->changed.wait_until(
@@ -236,21 +255,21 @@ bool CSession::Connect(ISignaling& signaling)
 bool CSession::WaitForVideo(std::chrono::milliseconds timeout)
 {
   const auto deadline = std::chrono::steady_clock::now() + timeout;
-  while (m_videoTrack)
+  while (m_video.track)
   {
     const auto now = std::chrono::steady_clock::now();
     if (now >= deadline)
       break;
     try
     {
-      m_videoTrack->requestKeyframe();
+      m_video.track->requestKeyframe();
     }
     catch (const std::exception& e)
     {
       // Until the track has its SRTP transport, shortly after connecting
       Log(LogLevel::LEVEL_DEBUG, "Unable to request a keyframe: %s", e.what());
     }
-    if (m_buffer->WaitForStreams(
+    if (m_buffer->WaitForVideo(
             std::min(KEYFRAME_REQUEST_INTERVAL,
                      std::chrono::duration_cast<std::chrono::milliseconds>(deadline - now))))
       return true;
@@ -265,10 +284,8 @@ void CSession::Close()
     m_peerConnection->close();
     m_peerConnection.reset();
   }
-  m_videoTrack.reset();
-  m_audioTrack.reset();
-  m_videoReceiver.reset();
-  m_videoStream.reset();
+  m_video = {};
+  m_audio = {};
 }
 
 void CSession::LogNegotiatedCodecs() const

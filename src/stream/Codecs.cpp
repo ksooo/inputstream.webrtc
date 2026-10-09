@@ -10,6 +10,8 @@
 #include "utils/Base64.h"
 #include "utils/StringUtils.h"
 
+#include <cstdlib>
+#include <utility>
 #include <variant>
 
 #include <rtc/description.hpp>
@@ -58,6 +60,12 @@ std::optional<Codec> ParseCodec(const std::string& format)
     return Codec::H264;
   if (name == "h265")
     return Codec::H265;
+  if (name == "opus")
+    return Codec::OPUS;
+  if (name == "pcmu")
+    return Codec::PCMU;
+  if (name == "pcma")
+    return Codec::PCMA;
   return {};
 }
 
@@ -71,8 +79,19 @@ const char* GetKodiCodecName(Codec codec)
       return "h264";
     case Codec::H265:
       return "hevc";
+    case Codec::OPUS:
+      return "opus";
+    case Codec::PCMU:
+      return "pcm_mulaw";
+    case Codec::PCMA:
+      return "pcm_alaw";
   }
   return "";
+}
+
+bool IsVideo(Codec codec)
+{
+  return codec == Codec::H264 || codec == Codec::H265;
 }
 
 bool IsKeyframe(Codec codec, const uint8_t* data, size_t size)
@@ -121,8 +140,14 @@ std::map<int, CodecInfo> GetCodecs(const rtc::Description& description, const st
       const auto codec = ParseCodec(rtpMap->format);
       if (!codec)
         continue;
-      codecs.emplace(payloadType, CodecInfo{*codec, static_cast<uint32_t>(rtpMap->clockRate),
-                                            GetParameterSets(*codec, rtpMap->fmtps)});
+      CodecInfo info{*codec, static_cast<uint32_t>(rtpMap->clockRate)};
+      if (IsVideo(*codec))
+        info.extraData = GetParameterSets(*codec, rtpMap->fmtps);
+      else
+        info.channels = rtpMap->encParams.empty()
+                            ? 1
+                            : static_cast<unsigned int>(std::atoi(rtpMap->encParams.c_str()));
+      codecs.emplace(payloadType, std::move(info));
     }
   }
   return codecs;

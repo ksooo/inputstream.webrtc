@@ -34,7 +34,7 @@ struct SessionConfig
 };
 
 /*!
- * \brief A WebRTC connection that receives video and optionally audio. The received video is
+ * \brief A WebRTC connection that receives video and optionally audio. The received streams are
  *        passed to the stream buffer, which also learns about the end of the connection.
  */
 class CSession
@@ -59,11 +59,21 @@ public:
 
   void Close();
 
-  std::shared_ptr<rtc::Track> GetVideoTrack() const { return m_videoTrack; }
-  std::shared_ptr<rtc::Track> GetAudioTrack() const { return m_audioTrack; }
+  std::shared_ptr<rtc::Track> GetVideoTrack() const { return m_video.track; }
+  std::shared_ptr<rtc::Track> GetAudioTrack() const { return m_audio.track; }
 
 private:
   struct State;
+
+  struct ReceivingTrack
+  {
+    std::shared_ptr<rtc::Track> track;
+    std::shared_ptr<CRtpReceiver> receiver;
+    std::shared_ptr<CMediaStream> stream;
+  };
+
+  ReceivingTrack AddReceivingTrack(const rtc::Description::Media& description, int streamId);
+  void SetCodecs(ReceivingTrack& receivingTrack, const std::string& mid);
 
   void LogNegotiatedCodecs() const;
 
@@ -71,10 +81,9 @@ private:
   const std::shared_ptr<CStreamBuffer> m_buffer;
   std::shared_ptr<State> m_state;
   std::shared_ptr<rtc::PeerConnection> m_peerConnection;
-  std::shared_ptr<rtc::Track> m_videoTrack;
-  std::shared_ptr<rtc::Track> m_audioTrack;
-  std::shared_ptr<CRtpReceiver> m_videoReceiver;
-  std::shared_ptr<CMediaStream> m_videoStream;
+  std::chrono::steady_clock::time_point m_start;
+  ReceivingTrack m_video;
+  ReceivingTrack m_audio;
 };
 
 } // namespace WEBRTC

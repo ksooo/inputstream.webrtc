@@ -24,10 +24,10 @@ namespace WEBRTC
 class CStreamBuffer;
 
 /*!
- * \brief Turns the frames of a track into packets for Kodi. Frames before the first keyframe
- *        of a codec are dropped; the stream is announced with that keyframe, and with its
- *        parameter sets unless the session description has them. Kodi needs them to open the
- *        stream.
+ * \brief Turns the frames of a track into packets for Kodi. The stream is announced with its
+ *        first frame. For video, frames before the first keyframe of a codec are dropped; the
+ *        stream is announced with that keyframe, and with its parameter sets unless the session
+ *        description has them. Kodi needs them to open the stream.
  */
 class CMediaStream
 {
@@ -49,7 +49,7 @@ private:
   std::mutex m_mutex;
   std::map<int, CodecInfo> m_codecs;
   std::optional<int> m_payloadType;
-  bool m_keyframeReceived{false};
+  bool m_announced{false};
   std::optional<CRtpClock> m_clock;
 };
 

@@ -29,7 +29,7 @@ TEST(MediaStreamTest, AnnouncesStreamWithFirstFrame)
   CMediaStream stream(1, buffer, std::chrono::steady_clock::now());
   stream.SetCodecs({{96, {Codec::H264, 90000, {0, 0, 0, 1, 0x67}}}});
 
-  EXPECT_FALSE(buffer->WaitForStreams(0ms));
+  EXPECT_FALSE(buffer->WaitForVideo(0ms));
   stream.OnFrame(MakeFrame(0x65), 96, 1000);
   stream.OnFrame(MakeFrame(0x41), 96, 1000 + 9000);
 
@@ -55,7 +55,7 @@ TEST(MediaStreamTest, IgnoresUnknownPayloadType)
   stream.SetCodecs({{96, {Codec::H264, 90000, {}}}});
 
   stream.OnFrame(MakeFrame(0x65), 100, 1000);
-  EXPECT_FALSE(buffer->WaitForStreams(0ms));
+  EXPECT_FALSE(buffer->WaitForVideo(0ms));
 }
 
 TEST(MediaStreamTest, CodecChangeAnnouncesStreamAgain)
@@ -80,10 +80,10 @@ TEST(MediaStreamTest, DropsFramesBeforeKeyframe)
   stream.SetCodecs({{96, {Codec::H264, 90000, {}}}});
 
   stream.OnFrame(MakeFrame(0x41), 96, 1000);
-  EXPECT_FALSE(buffer->WaitForStreams(0ms));
+  EXPECT_FALSE(buffer->WaitForVideo(0ms));
 
   stream.OnFrame(MakeFrame(0x65), 96, 4000);
-  EXPECT_TRUE(buffer->WaitForStreams(0ms));
+  EXPECT_TRUE(buffer->WaitForVideo(0ms));
   buffer->GetStreams();
 
   MediaPacket packet;
@@ -118,4 +118,29 @@ TEST(MediaStreamTest, ParameterSetsFromDescriptionFirst)
   stream.OnFrame(keyframe, 96, 1000);
 
   EXPECT_EQ(buffer->GetStream(1)->extraData, (std::vector<uint8_t>{0, 0, 0, 1, 0x67, 0x64}));
+}
+
+TEST(MediaStreamTest, AnnouncesAudioWithFirstFrame)
+{
+  auto buffer = std::make_shared<CStreamBuffer>();
+  CMediaStream stream(2, buffer, std::chrono::steady_clock::now());
+  stream.SetCodecs({{0, {Codec::PCMU, 8000, {}, 1}}});
+
+  const std::vector<std::byte> frame(160, std::byte{0xff});
+  stream.OnFrame(frame, 0, 0);
+  stream.OnFrame(frame, 0, 160);
+
+  const auto info = buffer->GetStream(2);
+  ASSERT_TRUE(info);
+  EXPECT_EQ(info->codec, Codec::PCMU);
+  EXPECT_EQ(info->sampleRate, 8000u);
+  EXPECT_EQ(info->channels, 1u);
+  EXPECT_TRUE(info->extraData.empty());
+
+  buffer->GetStreams();
+  MediaPacket first;
+  MediaPacket second;
+  ASSERT_EQ(buffer->Pop(0ms, first), CStreamBuffer::Result::PACKET);
+  ASSERT_EQ(buffer->Pop(0ms, second), CStreamBuffer::Result::PACKET);
+  EXPECT_EQ(second.pts - first.pts, 20000);
 }

@@ -35,6 +35,7 @@
 #include <rtc/h264rtppacketizer.hpp>
 #include <rtc/peerconnection.hpp>
 #include <rtc/plihandler.hpp>
+#include <rtc/rtppacketizer.hpp>
 
 using namespace WEBRTC;
 using namespace std::chrono_literals;
@@ -50,6 +51,7 @@ class CLoopbackSignaling : public ISignaling
 {
 public:
   static constexpr uint32_t VIDEO_SSRC = 42;
+  static constexpr uint32_t AUDIO_SSRC = 43;
 
   explicit CLoopbackSignaling(bool unreachable = false,
                               int tcpCandidates = 0,
@@ -76,6 +78,7 @@ public:
 
     auto answer = std::make_shared<std::promise<std::string>>();
     auto videoTrack = std::make_shared<std::promise<std::shared_ptr<rtc::Track>>>();
+    auto audioTrack = std::make_shared<std::promise<std::shared_ptr<rtc::Track>>>();
     rtc::Configuration configuration;
     configuration.bindAddress = BIND_ADDRESS;
     configuration.disableAutoNegotiation = true;
@@ -83,10 +86,12 @@ public:
     m_peer->onLocalDescription([answer](rtc::Description description)
                                { answer->set_value(std::string(description)); });
     m_peer->onTrack(
-        [videoTrack](std::shared_ptr<rtc::Track> track)
+        [videoTrack, audioTrack](std::shared_ptr<rtc::Track> track)
         {
           if (track->mid() == "video")
             videoTrack->set_value(track);
+          else if (track->mid() == "audio")
+            audioTrack->set_value(track);
         });
     if (!m_unreachable)
       m_peer->onLocalCandidate([onCandidate](rtc::Candidate candidate)
@@ -112,6 +117,18 @@ public:
           }
           m_changed.notify_all();
         }));
+    if (sdp.find("m=audio") != std::string::npos)
+    {
+      auto audioFuture = audioTrack->get_future();
+      if (audioFuture.wait_for(5s) != std::future_status::ready)
+        return {};
+      m_audioTrack = audioFuture.get();
+      auto audioDescription = m_audioTrack->description();
+      audioDescription.addSSRC(AUDIO_SSRC, "camera");
+      m_audioTrack->setDescription(audioDescription);
+      m_audioTrack->setMediaHandler(std::make_shared<rtc::OpusRtpPacketizer>(
+          std::make_shared<rtc::RtpPacketizationConfig>(AUDIO_SSRC, "camera", 111, 48000)));
+    }
     m_peer->setLocalDescription(rtc::Description::Type::Answer);
 
     auto future = answer->get_future();
@@ -145,6 +162,17 @@ public:
     return true;
   }
 
+  bool SendAudioFrame(const std::vector<uint8_t>& frame, uint32_t timestamp)
+  {
+    for (int i = 0; i < 100 && !m_audioTrack->isOpen(); ++i)
+      std::this_thread::sleep_for(10ms);
+    if (!m_audioTrack->isOpen())
+      return false;
+    const auto* bytes = reinterpret_cast<const std::byte*>(frame.data());
+    m_audioTrack->sendFrame(rtc::binary(bytes, bytes + frame.size()), rtc::FrameInfo(timestamp));
+    return true;
+  }
+
   bool WaitForKeyframeRequest()
   {
     std::unique_lock lock(m_mutex);
@@ -157,6 +185,7 @@ private:
   const int m_udpCandidates;
   std::shared_ptr<rtc::PeerConnection> m_peer;
   std::shared_ptr<rtc::Track> m_videoTrack;
+  std::shared_ptr<rtc::Track> m_audioTrack;
   std::string m_offer;
   std::mutex m_mutex;
   std::condition_variable m_changed;
@@ -343,4 +372,40 @@ TEST(SessionTest, DoesNotWaitForSilentTurnServer)
   const auto start = std::chrono::steady_clock::now();
   EXPECT_TRUE(session.Connect(signaling));
   EXPECT_LT(std::chrono::steady_clock::now() - start, 5s);
+}
+
+TEST(SessionTest, ReceivesAudio)
+{
+  // An Opus frame with a TOC byte for 20 ms of CELT audio
+  const std::vector<uint8_t> frame{0xfc, 0xff, 0xfe};
+  CLoopbackSignaling signaling;
+  auto buffer = MakeBuffer();
+  CSession session({{}, true, 10s, BIND_ADDRESS}, buffer);
+  ASSERT_TRUE(session.Connect(signaling));
+
+  ASSERT_TRUE(signaling.SendAudioFrame(frame, 960));
+  ASSERT_TRUE(signaling.SendAudioFrame(frame, 1920));
+  ASSERT_TRUE(buffer->WaitForVideo(5s));
+
+  const auto stream = buffer->GetStream(2);
+  ASSERT_TRUE(stream);
+  EXPECT_EQ(stream->codec, Codec::OPUS);
+  EXPECT_EQ(stream->sampleRate, 48000u);
+  EXPECT_EQ(stream->channels, 2u);
+
+  std::vector<MediaPacket> packets;
+  MediaPacket packet;
+  for (int i = 0; i < 100 && packets.size() < 2; ++i)
+  {
+    if (buffer->Pop(50ms, packet) == CStreamBuffer::Result::PACKET)
+      packets.emplace_back(packet);
+  }
+  ASSERT_EQ(packets.size(), 2u);
+  EXPECT_EQ(packets[0].streamId, 2);
+  EXPECT_EQ(packets[0].data, frame);
+  // 960 samples at 48 kHz
+  EXPECT_EQ(packets[1].pts - packets[0].pts, 20000);
+
+  session.Close();
+  signaling.Close();
 }

@@ -16,6 +16,9 @@ TEST(CodecsTest, KodiNames)
 {
   EXPECT_STREQ(GetKodiCodecName(Codec::H264), "h264");
   EXPECT_STREQ(GetKodiCodecName(Codec::H265), "hevc");
+  EXPECT_STREQ(GetKodiCodecName(Codec::OPUS), "opus");
+  EXPECT_STREQ(GetKodiCodecName(Codec::PCMU), "pcm_mulaw");
+  EXPECT_STREQ(GetKodiCodecName(Codec::PCMA), "pcm_alaw");
 }
 
 TEST(CodecsTest, ReadsCodecsOfMedia)
@@ -34,11 +37,14 @@ TEST(CodecsTest, ReadsCodecsOfMedia)
       "a=fmtp:96 packetization-mode=1;sprop-parameter-sets=Z0IAH5WoFAFuQA==,aM48gA==\r\n"
       "a=rtpmap:99 H265/90000\r\n"
       "a=rtpmap:100 VP8/90000\r\n"
-      "m=audio 9 UDP/TLS/RTP/SAVPF 111\r\n"
+      "m=audio 9 UDP/TLS/RTP/SAVPF 111 0 8 9\r\n"
       "c=IN IP4 0.0.0.0\r\n"
       "a=mid:audio\r\n"
       "a=sendonly\r\n"
-      "a=rtpmap:111 opus/48000/2\r\n",
+      "a=rtpmap:111 opus/48000/2\r\n"
+      "a=rtpmap:0 PCMU/8000\r\n"
+      "a=rtpmap:8 PCMA/8000\r\n"
+      "a=rtpmap:9 G722/8000\r\n",
       rtc::Description::Type::Answer);
 
   const auto codecs = GetCodecs(description, "video");
@@ -48,7 +54,15 @@ TEST(CodecsTest, ReadsCodecsOfMedia)
   EXPECT_FALSE(codecs.at(96).extraData.empty());
   EXPECT_EQ(codecs.at(99).codec, Codec::H265);
   EXPECT_TRUE(codecs.at(99).extraData.empty());
-  EXPECT_TRUE(GetCodecs(description, "audio").empty());
+  const auto audioCodecs = GetCodecs(description, "audio");
+  ASSERT_EQ(audioCodecs.size(), 3u);
+  EXPECT_EQ(audioCodecs.at(111).codec, Codec::OPUS);
+  EXPECT_EQ(audioCodecs.at(111).clockRate, 48000u);
+  EXPECT_EQ(audioCodecs.at(111).channels, 2u);
+  EXPECT_EQ(audioCodecs.at(0).codec, Codec::PCMU);
+  EXPECT_EQ(audioCodecs.at(0).clockRate, 8000u);
+  EXPECT_EQ(audioCodecs.at(0).channels, 1u);
+  EXPECT_EQ(audioCodecs.at(8).codec, Codec::PCMA);
 }
 
 TEST(CodecsTest, H264ParameterSets)
