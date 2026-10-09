@@ -5,12 +5,15 @@
  *  See LICENSE.md for more information.
  */
 
+#include "LogStub.h"
 #include "session/Session.h"
 #include "session/Signaling.h"
+#include "utils/RtcLog.h"
 
 #include <chrono>
 #include <future>
 #include <memory>
+#include <string>
 
 #include <gtest/gtest.h>
 #include <rtc/peerconnection.hpp>
@@ -28,12 +31,20 @@ constexpr const char* BIND_ADDRESS = "127.0.0.1";
 class CLoopbackSignaling : public ISignaling
 {
 public:
-  explicit CLoopbackSignaling(bool unreachable = false) : m_unreachable(unreachable) {}
+  explicit CLoopbackSignaling(bool unreachable = false, int tcpCandidates = 0)
+    : m_unreachable(unreachable),
+      m_tcpCandidates(tcpCandidates)
+  {
+  }
   ~CLoopbackSignaling() override { Close(); }
 
   std::optional<std::string> Offer(const std::string& sdp, CandidateCallback onCandidate) override
   {
     m_offer = sdp;
+    for (int i = 0; i < m_tcpCandidates; ++i)
+      onCandidate(rtc::Candidate("candidate:" + std::to_string(i) + " 1 tcp 1671430143 127.0.0.1 " +
+                                     std::to_string(9000 + i) + " typ host tcptype passive",
+                                 "video"));
 
     auto answer = std::make_shared<std::promise<std::string>>();
     rtc::Configuration configuration;
@@ -68,6 +79,7 @@ public:
 
 private:
   const bool m_unreachable;
+  const int m_tcpCandidates;
   std::shared_ptr<rtc::PeerConnection> m_peer;
   std::string m_offer;
 };
@@ -113,4 +125,18 @@ TEST(SessionTest, TimesOutWhenPeerIsUnreachable)
   const auto start = std::chrono::steady_clock::now();
   EXPECT_FALSE(session.Connect(signaling));
   EXPECT_LT(std::chrono::steady_clock::now() - start, 5s);
+}
+
+TEST(SessionTest, IgnoresTcpCandidates)
+{
+  InitRtcLog();
+  TakeLogMessages();
+  CLoopbackSignaling signaling(false, 30);
+  CSession session({{}, false, 10s, BIND_ADDRESS});
+
+  ASSERT_TRUE(session.Connect(signaling));
+  session.Close();
+  signaling.Close();
+  for (const auto& message : TakeLogMessages())
+    EXPECT_EQ(message.find("maximum number of candidates"), std::string::npos) << message;
 }
