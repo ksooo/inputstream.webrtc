@@ -2,7 +2,7 @@
 <addon
   id="inputstream.webrtc"
   version="22.0.0"
-  name="WebRTC Inputstream"
+  name="Inputstream WebRTC"
   provider-name="ksooo">
   <requires>@ADDON_DEPENDS@</requires>
   <extension

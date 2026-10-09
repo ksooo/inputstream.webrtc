@@ -1,4 +1,4 @@
-# WebRTC Inputstream
+# Inputstream WebRTC
 
 Kodi inputstream add-on for WebRTC live streams, such as camera feeds. Streams are received from
 servers that support the [WebRTC-HTTP Egress Protocol (WHEP)](https://datatracker.ietf.org/doc/draft-ietf-wish-whep/),
