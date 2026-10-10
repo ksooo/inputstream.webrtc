@@ -21,8 +21,6 @@ LogLevel ToLogLevel(rtc::LogLevel level)
       return LogLevel::LEVEL_ERROR;
     case rtc::LogLevel::Warning:
       return LogLevel::LEVEL_WARNING;
-    case rtc::LogLevel::Info:
-      return LogLevel::LEVEL_INFO;
     default:
       return LogLevel::LEVEL_DEBUG;
   }
