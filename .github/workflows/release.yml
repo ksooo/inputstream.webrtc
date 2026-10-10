@@ -1,0 +1,59 @@
+name: Release
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Version tag to build, e.g. v22.0.0
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    name: Check tag
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout add-on repo
+      uses: actions/checkout@v5
+      with:
+        ref: ${{ inputs.tag }}
+    - name: Compare tag and version
+      env:
+        TAG: ${{ inputs.tag }}
+      run: |
+        version=$(sed -n 's/^ *version="\([0-9.]*\)".*/\1/p' */addon.xml.in)
+        if [ "v${version}" != "${TAG}" ]; then
+          echo "::error::${TAG} does not match version ${version} in addon.xml.in"
+          exit 1
+        fi
+
+  build:
+    needs: check
+    uses: ./.github/workflows/build.yml
+    with:
+      ref: ${{ inputs.tag }}
+      package: true
+
+  publish:
+    name: Publish
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download
+      uses: actions/download-artifact@v4
+      with:
+        pattern: zip-*
+        path: dist
+        merge-multiple: true
+    - name: Attach to the release
+      env:
+        GH_TOKEN: ${{ github.token }}
+        TAG: ${{ inputs.tag }}
+      run: |
+        if gh release view "$TAG" -R "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+          gh release upload "$TAG" dist/*.zip --clobber -R "$GITHUB_REPOSITORY"
+        else
+          gh release create "$TAG" dist/*.zip --verify-tag --title "$TAG" \
+            --notes "Built for Kodi Piers." -R "$GITHUB_REPOSITORY"
+        fi

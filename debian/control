@@ -1,0 +1,21 @@
+Source: kodi-inputstream-webrtc
+Priority: extra
+Maintainer: Nobody <nobody@kodi.tv>
+Build-Depends: debhelper (>= 9.0.0), cmake, kodi-addon-dev, patch, nlohmann-json3-dev
+Standards-Version: 4.1.2
+Section: libs
+
+Package: kodi-inputstream-webrtc
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: WebRTC inputstream for Kodi
+ Plays WebRTC live streams, such as camera feeds, from servers that support
+ WHEP and from the cameras of Home Assistant.
+
+Package: kodi-inputstream-webrtc-dbg
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: debugging symbols for WebRTC inputstream for Kodi
+ debugging symbols for WebRTC inputstream for Kodi

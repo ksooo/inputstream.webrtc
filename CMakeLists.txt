@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(BUILD_TESTING "Build the unit tests." ON)
+option(ENABLE_INTERNAL_LIBDATACHANNEL "Build libdatachannel with mbedTLS and its other dependencies, which distributions package differently, if at all." OFF)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR})
 
@@ -82,6 +83,10 @@ addon_version(inputstream.webrtc WEBRTC)
 add_definitions(-DWEBRTC_VERSION=${WEBRTC_VERSION})
 
 build_addon(inputstream.webrtc WEBRTC DEPLIBS)
+
+if(ENABLE_INTERNAL_LIBDATACHANNEL)
+  add_dependencies(inputstream.webrtc libdatachannel)
+endif()
 
 if(NOT CMAKE_CROSSCOMPILING AND BUILD_TESTING)
   list(APPEND CMAKE_CTEST_ARGUMENTS "-V")

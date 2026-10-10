@@ -25,5 +25,8 @@ add_executable(${BINARY} Base64Test.cpp
 
 target_include_directories(${BINARY} PRIVATE ${GTEST_INCLUDE_DIRS})
 target_link_libraries(${BINARY} PRIVATE ${GTEST_LIBRARIES} ${DEPLIBS})
+if(ENABLE_INTERNAL_LIBDATACHANNEL)
+  add_dependencies(${BINARY} libdatachannel)
+endif()
 
 add_test(NAME ${BINARY} COMMAND ${BINARY})
