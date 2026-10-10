@@ -10,6 +10,7 @@ add_executable(${BINARY} Base64Test.cpp
                          IceServersTest.cpp
                          LogStub.cpp
                          MediaStreamTest.cpp
+                         PtsSmootherTest.cpp
                          RtcLogTest.cpp
                          RtpClockTest.cpp
                          SequenceTrackerTest.cpp

@@ -79,7 +79,9 @@ void CMediaStream::OnFrame(const std::vector<std::byte>& data,
   if (time.catchingUp && !IsVideo(codec->second.codec))
     return;
 
-  m_buffer->Push({m_streamId, std::vector<uint8_t>(bytes, bytes + data.size()), time.pts});
+  const int64_t pts =
+      IsVideo(codec->second.codec) && !time.catchingUp ? m_smoother.Smooth(time.pts) : time.pts;
+  m_buffer->Push({m_streamId, std::vector<uint8_t>(bytes, bytes + data.size()), pts});
 }
 
 } // namespace WEBRTC

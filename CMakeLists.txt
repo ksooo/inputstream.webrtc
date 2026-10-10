@@ -27,6 +27,7 @@ set(WEBRTC_CORE_SOURCES src/StreamProperties.cpp
                         src/session/Session.cpp
                         src/stream/Codecs.cpp
                         src/stream/MediaStream.cpp
+                        src/stream/PtsSmoother.cpp
                         src/stream/RtpClock.cpp
                         src/stream/SequenceTracker.cpp
                         src/stream/StreamBuffer.cpp
@@ -46,6 +47,7 @@ set(WEBRTC_CORE_HEADERS src/StreamProperties.h
                         src/session/Signaling.h
                         src/stream/Codecs.h
                         src/stream/MediaStream.h
+                        src/stream/PtsSmoother.h
                         src/stream/RtpClock.h
                         src/stream/SequenceTracker.h
                         src/stream/StreamBuffer.h

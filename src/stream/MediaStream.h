@@ -8,6 +8,7 @@
 #pragma once
 
 #include "Codecs.h"
+#include "PtsSmoother.h"
 #include "RtpClock.h"
 
 #include <chrono>
@@ -54,6 +55,7 @@ private:
   std::optional<int> m_payloadType;
   bool m_announced{false};
   std::optional<CRtpClock> m_clock;
+  CPtsSmoother m_smoother; // video only
 };
 
 } // namespace WEBRTC
