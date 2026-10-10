@@ -1,2 +1,6 @@
+v22.0.1
+- Log the steps of each connection only in the debug log
+- No warning any more about TURN servers over TCP or TLS, which cannot be used
+
 v22.0.0
 - Initial version

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon
   id="inputstream.webrtc"
-  version="22.0.0"
+  version="22.0.1"
   name="Inputstream WebRTC"
   provider-name="ksooo">
   <requires>@ADDON_DEPENDS@</requires>
@@ -22,8 +22,9 @@
     <description lang="en_GB">Plays WebRTC live streams, such as camera feeds, from servers that support the WebRTC-HTTP Egress Protocol (WHEP), e.g. MediaMTX or go2rtc, and from the cameras of Home Assistant.</description>
     <summary lang="de_DE">WebRTC-Livestreams über WHEP oder Home Assistant</summary>
     <description lang="de_DE">WebRTC-Livestreams wie Kamerabilder von Servern abspielen, die das WebRTC-HTTP Egress Protocol (WHEP) unterstützen, z. B. MediaMTX oder go2rtc, sowie von den Kameras in Home Assistant.</description>
-    <news>v22.0.0
-- Initial version
+    <news>v22.0.1
+- Log the steps of each connection only in the debug log
+- No warning any more about TURN servers over TCP or TLS, which cannot be used
 </news>
   </extension>
 </addon>
