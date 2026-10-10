@@ -14,10 +14,9 @@
 namespace WEBRTC
 {
 
-class CSession;
+class CConnection;
 class CStreamBuffer;
 class IHttpTransport;
-class ISignaling;
 
 class ATTR_DLL_LOCAL CInputStream : public kodi::addon::CInstanceInputStream
 {
@@ -42,8 +41,7 @@ public:
 private:
   std::shared_ptr<CStreamBuffer> m_buffer;
   std::unique_ptr<IHttpTransport> m_transport;
-  std::unique_ptr<ISignaling> m_signaling;
-  std::unique_ptr<CSession> m_session;
+  std::unique_ptr<CConnection> m_connection;
 };
 
 } // namespace WEBRTC

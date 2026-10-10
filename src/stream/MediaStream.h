@@ -41,7 +41,10 @@ public:
                std::chrono::steady_clock::time_point sessionStart);
 
   void SetCodecs(std::map<int, CodecInfo> codecs);
-  void OnFrame(const std::vector<std::byte>& data,
+  /*!
+   * \return Whether the frame went to the stream buffer.
+   */
+  bool OnFrame(const std::vector<std::byte>& data,
                int payloadType,
                uint32_t timestamp,
                std::chrono::steady_clock::time_point arrival);

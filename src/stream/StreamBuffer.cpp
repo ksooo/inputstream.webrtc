@@ -82,18 +82,6 @@ void CStreamBuffer::Flush()
   m_aborted = false;
 }
 
-bool CStreamBuffer::WaitForVideo(std::chrono::milliseconds timeout)
-{
-  const auto hasVideo = [this]
-  {
-    return std::any_of(m_streams.begin(), m_streams.end(),
-                       [](const auto& stream) { return IsVideo(stream.second.codec); });
-  };
-  std::unique_lock lock(m_mutex);
-  m_changed.wait_for(lock, timeout, [&] { return hasVideo() || m_ended; });
-  return hasVideo();
-}
-
 std::vector<StreamInfo> CStreamBuffer::GetStreams()
 {
   std::lock_guard lock(m_mutex);

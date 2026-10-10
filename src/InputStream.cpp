@@ -9,8 +9,8 @@
 
 #include "StreamProperties.h"
 #include "ha/HaSignaling.h"
+#include "session/Connection.h"
 #include "session/IceServers.h"
-#include "session/Session.h"
 #include "stream/StreamBuffer.h"
 #include "utils/CaBundle.h"
 #include "utils/Log.h"
@@ -27,7 +27,6 @@ namespace
 {
 
 constexpr std::chrono::milliseconds CONNECT_TIMEOUT = std::chrono::seconds(10);
-constexpr std::chrono::milliseconds FIRST_KEYFRAME_TIMEOUT = std::chrono::seconds(5);
 constexpr std::chrono::milliseconds READ_TIMEOUT = std::chrono::milliseconds(20);
 
 } // namespace
@@ -53,32 +52,27 @@ bool CInputStream::Open(const kodi::addon::InputstreamProperty& props)
   if (!properties)
     return false;
 
+  CConnection::SignalingFactory signalingFactory;
   if (properties->signaling == SignalingType::HOME_ASSISTANT)
   {
-    m_signaling =
-        std::make_unique<CHaSignaling>(props.GetURL(), properties->bearerToken,
-                                       properties->entityId, FindCaBundle(), CONNECT_TIMEOUT);
+    signalingFactory = [url = props.GetURL(), token = properties->bearerToken,
+                        entityId = properties->entityId, caFile = FindCaBundle()]
+    { return std::make_unique<CHaSignaling>(url, token, entityId, caFile, CONNECT_TIMEOUT); };
   }
   else
   {
     m_transport = std::make_unique<CKodiHttpTransport>();
-    m_signaling =
-        std::make_unique<CWhepClient>(*m_transport, props.GetURL(), properties->bearerToken);
+    signalingFactory =
+        [&transport = *m_transport, url = props.GetURL(), token = properties->bearerToken]
+    { return std::make_unique<CWhepClient>(transport, url, token); };
   }
 
   m_buffer = std::make_shared<CStreamBuffer>();
-  m_session = std::make_unique<CSession>(
+  m_connection = std::make_unique<CConnection>(
       SessionConfig{ParseIceServers(properties->iceServers), properties->audio, CONNECT_TIMEOUT},
-      m_buffer);
-  if (!m_session->Connect(*m_signaling))
+      std::move(signalingFactory), m_buffer);
+  if (!m_connection->Open())
   {
-    Close();
-    return false;
-  }
-
-  if (!m_session->WaitForVideo(FIRST_KEYFRAME_TIMEOUT))
-  {
-    Log(LogLevel::LEVEL_ERROR, "Received no video");
     Close();
     return false;
   }
@@ -87,12 +81,7 @@ bool CInputStream::Open(const kodi::addon::InputstreamProperty& props)
 
 void CInputStream::Close()
 {
-  if (m_session)
-    m_session->Close();
-  if (m_signaling)
-    m_signaling->Close();
-  m_session.reset();
-  m_signaling.reset();
+  m_connection.reset();
   m_transport.reset();
   m_buffer.reset();
 }

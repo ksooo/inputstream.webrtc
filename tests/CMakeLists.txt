@@ -6,6 +6,7 @@ add_executable(${BINARY} Base64Test.cpp
                          CaBundleTest.cpp
                          CandidatesTest.cpp
                          CodecsTest.cpp
+                         ConnectionTest.cpp
                          HaSignalingTest.cpp
                          IceServersTest.cpp
                          LogStub.cpp

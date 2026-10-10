@@ -35,12 +35,17 @@ struct SessionConfig
 
 /*!
  * \brief A WebRTC connection that receives video and optionally audio. The received streams are
- *        passed to the stream buffer, which also learns about the end of the connection.
+ *        passed to the stream buffer.
  */
 class CSession
 {
 public:
-  CSession(SessionConfig config, std::shared_ptr<CStreamBuffer> buffer);
+  /*!
+   * \param start The time the presentation times of the streams count from.
+   */
+  CSession(SessionConfig config,
+           std::shared_ptr<CStreamBuffer> buffer,
+           std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now());
   ~CSession();
 
   CSession(const CSession&) = delete;
@@ -56,6 +61,16 @@ public:
    *        can get lost while the remote side still completes the connection.
    */
   bool WaitForVideo(std::chrono::milliseconds timeout);
+
+  /*!
+   * \brief Whether the session is connected and received video within the timeout.
+   */
+  bool IsAlive(std::chrono::milliseconds videoTimeout) const;
+
+  /*!
+   * \brief Lets a waiting Connect() or WaitForVideo() return; from any thread.
+   */
+  void Abort();
 
   void Close();
 
@@ -81,7 +96,7 @@ private:
   const std::shared_ptr<CStreamBuffer> m_buffer;
   std::shared_ptr<State> m_state;
   std::shared_ptr<rtc::PeerConnection> m_peerConnection;
-  std::chrono::steady_clock::time_point m_start;
+  const std::chrono::steady_clock::time_point m_start;
   ReceivingTrack m_video;
   ReceivingTrack m_audio;
 };

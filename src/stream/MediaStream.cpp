@@ -30,7 +30,7 @@ void CMediaStream::SetCodecs(std::map<int, CodecInfo> codecs)
   m_codecs = std::move(codecs);
 }
 
-void CMediaStream::OnFrame(const std::vector<std::byte>& data,
+bool CMediaStream::OnFrame(const std::vector<std::byte>& data,
                            int payloadType,
                            uint32_t timestamp,
                            std::chrono::steady_clock::time_point arrival)
@@ -39,7 +39,7 @@ void CMediaStream::OnFrame(const std::vector<std::byte>& data,
 
   const auto codec = m_codecs.find(payloadType);
   if (codec == m_codecs.end())
-    return;
+    return false;
 
   if (payloadType != m_payloadType)
   {
@@ -55,7 +55,7 @@ void CMediaStream::OnFrame(const std::vector<std::byte>& data,
     if (IsVideo(info.codec))
     {
       if (!IsKeyframe(info.codec, bytes, data.size()))
-        return;
+        return false;
       if (stream.extraData.empty())
         stream.extraData = ExtractParameterSets(info.codec, bytes, data.size());
     }
@@ -77,11 +77,12 @@ void CMediaStream::OnFrame(const std::vector<std::byte>& data,
   const auto time = m_clock->ToPresentationTime(timestamp, sinceStart);
   // Buffered audio is of no use; video frames are needed to decode the following ones
   if (time.catchingUp && !IsVideo(codec->second.codec))
-    return;
+    return false;
 
   const int64_t pts =
       IsVideo(codec->second.codec) && !time.catchingUp ? m_smoother.Smooth(time.pts) : time.pts;
   m_buffer->Push({m_streamId, std::vector<uint8_t>(bytes, bytes + data.size()), pts});
+  return true;
 }
 
 } // namespace WEBRTC

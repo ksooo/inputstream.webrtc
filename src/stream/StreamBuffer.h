@@ -75,11 +75,6 @@ public:
   void Flush();
 
   /*!
-   * \return True as soon as there is a video stream, false on timeout or end.
-   */
-  bool WaitForVideo(std::chrono::milliseconds timeout);
-
-  /*!
    * \brief The streams; also takes note that Kodi knows about them.
    */
   std::vector<StreamInfo> GetStreams();

@@ -17,9 +17,9 @@ using namespace std::chrono_literals;
 TEST(StreamBufferTest, AnnouncesStreamsOnce)
 {
   CStreamBuffer buffer;
-  EXPECT_FALSE(buffer.WaitForVideo(0ms));
+  EXPECT_FALSE(buffer.GetStream(1));
   buffer.SetStream({1, Codec::H264, {}});
-  EXPECT_TRUE(buffer.WaitForVideo(0ms));
+  EXPECT_TRUE(buffer.GetStream(1));
 
   MediaPacket packet;
   EXPECT_EQ(buffer.Pop(0ms, packet), CStreamBuffer::Result::STREAMS_CHANGED);
@@ -30,15 +30,6 @@ TEST(StreamBufferTest, AnnouncesStreamsOnce)
   EXPECT_EQ(buffer.GetStream(1)->codec, Codec::H265);
   // Kodi already asked for the streams
   EXPECT_EQ(buffer.Pop(0ms, packet), CStreamBuffer::Result::NONE);
-}
-
-TEST(StreamBufferTest, WaitsForVideo)
-{
-  CStreamBuffer buffer;
-  buffer.SetStream({2, Codec::OPUS, {}});
-  EXPECT_FALSE(buffer.WaitForVideo(0ms));
-  buffer.SetStream({1, Codec::H264, {}});
-  EXPECT_TRUE(buffer.WaitForVideo(0ms));
 }
 
 TEST(StreamBufferTest, PacketsInOrderThenEnd)

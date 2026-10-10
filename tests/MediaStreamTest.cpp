@@ -36,7 +36,7 @@ TEST(MediaStreamTest, AnnouncesStreamWithFirstFrame)
   CMediaStream stream(1, buffer, START);
   stream.SetCodecs({{96, {Codec::H264, 90000, {0, 0, 0, 1, 0x67}}}});
 
-  EXPECT_FALSE(buffer->WaitForVideo(0ms));
+  EXPECT_FALSE(buffer->GetStream(1));
   stream.OnFrame(MakeFrame(0x65), 96, 1000, At(0));
   stream.OnFrame(MakeFrame(0x41), 96, 1000 + 9000, At(100));
 
@@ -62,7 +62,7 @@ TEST(MediaStreamTest, IgnoresUnknownPayloadType)
   stream.SetCodecs({{96, {Codec::H264, 90000, {}}}});
 
   stream.OnFrame(MakeFrame(0x65), 100, 1000, At(0));
-  EXPECT_FALSE(buffer->WaitForVideo(0ms));
+  EXPECT_FALSE(buffer->GetStream(1));
 }
 
 TEST(MediaStreamTest, CodecChangeAnnouncesStreamAgain)
@@ -87,10 +87,10 @@ TEST(MediaStreamTest, DropsFramesBeforeKeyframe)
   stream.SetCodecs({{96, {Codec::H264, 90000, {}}}});
 
   stream.OnFrame(MakeFrame(0x41), 96, 1000, At(0));
-  EXPECT_FALSE(buffer->WaitForVideo(0ms));
+  EXPECT_FALSE(buffer->GetStream(1));
 
   stream.OnFrame(MakeFrame(0x65), 96, 4000, At(33));
-  EXPECT_TRUE(buffer->WaitForVideo(0ms));
+  EXPECT_TRUE(buffer->GetStream(1));
   buffer->GetStreams();
 
   MediaPacket packet;

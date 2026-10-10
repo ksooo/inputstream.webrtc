@@ -22,6 +22,7 @@ add_compile_definitions(${LIBDATACHANNEL_DEFINITIONS})
 set(WEBRTC_CORE_SOURCES src/StreamProperties.cpp
                         src/ha/HaSignaling.cpp
                         src/session/Candidates.cpp
+                        src/session/Connection.cpp
                         src/session/IceServers.cpp
                         src/session/RtpReceiver.cpp
                         src/session/Session.cpp
@@ -41,6 +42,7 @@ set(WEBRTC_CORE_SOURCES src/StreamProperties.cpp
 set(WEBRTC_CORE_HEADERS src/StreamProperties.h
                         src/ha/HaSignaling.h
                         src/session/Candidates.h
+                        src/session/Connection.h
                         src/session/IceServers.h
                         src/session/RtpReceiver.h
                         src/session/Session.h
