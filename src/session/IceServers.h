@@ -27,4 +27,9 @@ std::optional<rtc::IceServer> ParseIceServer(const std::string& url);
  */
 std::vector<rtc::IceServer> ParseIceServers(const std::vector<std::string>& urls);
 
+/*!
+ * \brief Leaves out the TURN servers that relay over TCP or TLS, which libjuice cannot use.
+ */
+std::vector<rtc::IceServer> RemoveTcpTurnServers(std::vector<rtc::IceServer> servers);
+
 } // namespace WEBRTC

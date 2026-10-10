@@ -8,6 +8,7 @@
 #include "Session.h"
 
 #include "Candidates.h"
+#include "IceServers.h"
 #include "RtpReceiver.h"
 #include "Signaling.h"
 #include "stream/MediaStream.h"
@@ -140,9 +141,10 @@ bool CSession::Connect(ISignaling& signaling)
   try
   {
     rtc::Configuration configuration;
-    configuration.iceServers = m_config.iceServers;
+    auto iceServers = m_config.iceServers;
     for (auto& server : signaling.GetIceServers())
-      configuration.iceServers.emplace_back(std::move(server));
+      iceServers.emplace_back(std::move(server));
+    configuration.iceServers = RemoveTcpTurnServers(std::move(iceServers));
     configuration.bindAddress = m_config.bindAddress;
     configuration.disableAutoNegotiation = true;
 

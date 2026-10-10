@@ -38,4 +38,18 @@ std::vector<rtc::IceServer> ParseIceServers(const std::vector<std::string>& urls
   return servers;
 }
 
+std::vector<rtc::IceServer> RemoveTcpTurnServers(std::vector<rtc::IceServer> servers)
+{
+  const size_t removed =
+      std::erase_if(servers,
+                    [](const rtc::IceServer& server)
+                    {
+                      return server.type == rtc::IceServer::Type::Turn &&
+                             server.relayType != rtc::IceServer::RelayType::TurnUdp;
+                    });
+  if (removed > 0)
+    Log(LogLevel::LEVEL_DEBUG, "Ignoring %zu TURN servers over TCP or TLS", removed);
+  return servers;
+}
+
 } // namespace WEBRTC

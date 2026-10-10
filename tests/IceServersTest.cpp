@@ -32,3 +32,16 @@ TEST(IceServersTest, SkipsInvalidUrls)
   ASSERT_EQ(servers.size(), 1u);
   EXPECT_EQ(servers[0].hostname, "host");
 }
+
+TEST(IceServersTest, RemovesTcpTurnServers)
+{
+  const auto servers = RemoveTcpTurnServers(
+      {rtc::IceServer("stun.example.com", 3478),
+       rtc::IceServer("turn.example.com", 3478, "user", "pass", rtc::IceServer::RelayType::TurnUdp),
+       rtc::IceServer("turn.example.com", 3478, "user", "pass", rtc::IceServer::RelayType::TurnTcp),
+       rtc::IceServer("turn.example.com", 443, "user", "pass",
+                      rtc::IceServer::RelayType::TurnTls)});
+  ASSERT_EQ(servers.size(), 2u);
+  EXPECT_EQ(servers[0].type, rtc::IceServer::Type::Stun);
+  EXPECT_EQ(servers[1].relayType, rtc::IceServer::RelayType::TurnUdp);
+}
