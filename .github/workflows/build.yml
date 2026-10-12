@@ -177,3 +177,43 @@ jobs:
       with:
         name: zip-${{ matrix.platform }}
         path: dist/*.zip
+
+  debian:
+    name: Debian package
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Checkout Kodi repo
+      uses: actions/checkout@v5
+      with:
+        repository: xbmc/xbmc
+        ref: ${{ env.kodi_branch }}
+        path: xbmc
+    - name: Checkout add-on repo
+      uses: actions/checkout@v5
+      with:
+        ref: ${{ inputs.ref }}
+        path: ${{ env.app_id }}
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y dpkg-dev debhelper cmake patch nlohmann-json3-dev
+    # There is no kodi-addon-dev package for Kodi Piers; Kodi's add-on build system provides
+    # the same files when it is configured
+    - name: Prepare Kodi add-on development files
+      run: |
+        cmake -B kodi-dev -DADDONS_TO_BUILD=${app_id} -DCMAKE_INSTALL_PREFIX=/usr \
+              -DADDONS_DEFINITION_DIR="${definition_dir}" \
+              -DADDON_SRC_PREFIX="${{ github.workspace }}" xbmc/cmake/addons
+        # Install into /usr like with kodi-addon-dev
+        sed -i -e 's|^  set(KODI_LIB_DIR .*|  set(KODI_LIB_DIR /usr/lib/kodi)|' \
+               -e 's|^  set(KODI_DATA_DIR .*|  set(KODI_DATA_DIR /usr/share/kodi)|' \
+               kodi-dev/build/depends/lib/kodi/KodiConfig.cmake
+        grep -E "KODI_(PREFIX|LIB_DIR|DATA_DIR)" kodi-dev/build/depends/lib/kodi/KodiConfig.cmake
+    - name: Build
+      working-directory: ${{ env.app_id }}
+      run: |
+        version=$(sed -n 's/^  version="\([0-9.]*\)".*/\1/p' ${app_id}/addon.xml.in)
+        sed -e "s/#PACKAGEVERSION#/${version}/" -e "s/#TAGREV#/0/" -e "s/#DIST#/noble/g" \
+            debian/changelog.in > debian/changelog
+        CMAKE_PREFIX_PATH="${{ github.workspace }}/kodi-dev/build/depends" dpkg-buildpackage -us -uc -b -d
+        ls ../*.deb
