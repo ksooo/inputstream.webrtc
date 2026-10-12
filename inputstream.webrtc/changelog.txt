@@ -1,3 +1,6 @@
+v22.1.0
+- Home Assistant cameras are given in the URL now, e.g. http://homeassistant.local:8123/?ha_entity_id=camera.garden, so Kodi keeps apart what it remembers about each stream; the signaling and entity_id properties are gone
+
 v22.0.1
 - Log the steps of each connection only in the debug log
 - No warning any more about TURN servers over TCP or TLS, which cannot be used
