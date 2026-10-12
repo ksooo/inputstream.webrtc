@@ -48,7 +48,7 @@ void CInputStream::GetCapabilities(kodi::addon::InputstreamCapabilities& capabil
 
 bool CInputStream::Open(const kodi::addon::InputstreamProperty& props)
 {
-  const auto properties = ParseStreamProperties(props.GetProperties());
+  const auto properties = ParseStreamProperties(props.GetURL(), props.GetProperties());
   if (!properties)
     return false;
 

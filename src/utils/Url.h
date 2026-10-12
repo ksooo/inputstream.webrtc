@@ -7,6 +7,7 @@
 
 #pragma once
 
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -28,5 +29,10 @@ std::string ResolveUrl(const std::string& base, const std::string& reference);
  * \brief Removes the user name and password from a URL.
  */
 std::string RemoveUserInfo(const std::string& url);
+
+/*!
+ * \brief The value of a query parameter of a URL as it is written there, i.e. not percent-decoded.
+ */
+std::optional<std::string> GetQueryParameter(const std::string& url, const std::string& name);
 
 } // namespace WEBRTC

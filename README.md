@@ -25,8 +25,6 @@ Further properties:
 
 | Property | Description |
 |---|---|
-| `inputstream.webrtc.signaling` | `whep` (default) or `homeassistant` |
-| `inputstream.webrtc.entity_id` | The camera entity, for Home Assistant |
 | `inputstream.webrtc.bearer_token` | Token sent in the `Authorization: Bearer` header of the WHEP requests; for Home Assistant a long-lived access token |
 | `inputstream.webrtc.ice_servers` | Comma separated STUN/TURN servers, e.g. `stun:host:3478,turn:user:password@host:3478`, in addition to the ones announced by Home Assistant |
 | `inputstream.webrtc.audio` | `false` to receive video only, which starts playback with less delay |
@@ -38,14 +36,14 @@ TURN servers are only used over UDP.
 
 ### Home Assistant
 
-The URL is the address of Home Assistant, also a Home Assistant Cloud remote URL:
+The URL is the address of Home Assistant, also a Home Assistant Cloud remote URL, with the camera
+entity in the `ha_entity_id` parameter. Each stream a camera offers is an entity of its own, so
+each stream gets a URL of its own, and Kodi keeps apart what it remembers about them:
 
 ```
 #KODIPROP:inputstream=inputstream.webrtc
-#KODIPROP:inputstream.webrtc.signaling=homeassistant
-#KODIPROP:inputstream.webrtc.entity_id=camera.garden
 #KODIPROP:inputstream.webrtc.bearer_token=eyJhbGciOi...
-http://homeassistant.local:8123
+http://homeassistant.local:8123/?ha_entity_id=camera.garden
 ```
 
 The access token grants everything its user may do, so create it for a separate user without

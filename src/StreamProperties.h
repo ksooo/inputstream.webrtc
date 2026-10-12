@@ -31,10 +31,11 @@ struct StreamProperties
 };
 
 /*!
- * \brief Reads the inputstream.webrtc.* list item properties.
+ * \brief Reads the stream properties from the URL and the inputstream.webrtc.* list item
+ *        properties. An ha_entity_id query parameter names the camera of Home Assistant.
  * \return The properties, or nothing if a value is invalid or a required one is missing.
  */
 std::optional<StreamProperties> ParseStreamProperties(
-    const std::map<std::string, std::string>& properties);
+    const std::string& url, const std::map<std::string, std::string>& properties);
 
 } // namespace WEBRTC

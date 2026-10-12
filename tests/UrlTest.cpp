@@ -38,3 +38,14 @@ TEST(UrlTest, RemovesUserInfo)
             "http://h:11984/api/webrtc?src=cam");
   EXPECT_EQ(RemoveUserInfo("http://h/whep"), "http://h/whep");
 }
+
+TEST(UrlTest, GetsQueryParameters)
+{
+  EXPECT_EQ(GetQueryParameter("http://h/?a=1", "a"), "1");
+  EXPECT_EQ(GetQueryParameter("http://h/?x=1&a=2&y=3", "a"), "2");
+  EXPECT_EQ(GetQueryParameter("http://h/?a=1|User-Agent=Kodi", "a"), "1");
+  EXPECT_EQ(GetQueryParameter("http://h/?a=", "a"), "");
+  EXPECT_EQ(GetQueryParameter("http://h/?a", "a"), "");
+  EXPECT_FALSE(GetQueryParameter("http://h/?xa=1", "a"));
+  EXPECT_FALSE(GetQueryParameter("http://h/a", "a"));
+}

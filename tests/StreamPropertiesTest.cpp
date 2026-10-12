@@ -13,7 +13,7 @@ using namespace WEBRTC;
 
 TEST(StreamPropertiesTest, Defaults)
 {
-  const auto properties = ParseStreamProperties({});
+  const auto properties = ParseStreamProperties("http://host:8889/garden/whep", {});
   ASSERT_TRUE(properties);
   EXPECT_EQ(properties->signaling, SignalingType::WHEP);
   EXPECT_TRUE(properties->audio);
@@ -23,10 +23,9 @@ TEST(StreamPropertiesTest, Defaults)
 
 TEST(StreamPropertiesTest, HomeAssistant)
 {
-  const auto properties = ParseStreamProperties({{"inputstream.webrtc.signaling", "homeassistant"},
-                                                 {"inputstream.webrtc.entity_id", "camera.garden"},
-                                                 {"inputstream.webrtc.bearer_token", "token"},
-                                                 {"inputstream.webrtc.audio", "false"}});
+  const auto properties = ParseStreamProperties(
+      "http://ha.local:8123/?ha_entity_id=camera.garden",
+      {{"inputstream.webrtc.bearer_token", "token"}, {"inputstream.webrtc.audio", "false"}});
   ASSERT_TRUE(properties);
   EXPECT_EQ(properties->signaling, SignalingType::HOME_ASSISTANT);
   EXPECT_EQ(properties->entityId, "camera.garden");
@@ -36,15 +35,15 @@ TEST(StreamPropertiesTest, HomeAssistant)
 
 TEST(StreamPropertiesTest, HomeAssistantNeedsEntityAndToken)
 {
-  EXPECT_FALSE(ParseStreamProperties({{"inputstream.webrtc.signaling", "homeassistant"},
-                                      {"inputstream.webrtc.bearer_token", "token"}}));
-  EXPECT_FALSE(ParseStreamProperties({{"inputstream.webrtc.signaling", "homeassistant"},
-                                      {"inputstream.webrtc.entity_id", "camera.garden"}}));
+  EXPECT_FALSE(ParseStreamProperties("http://ha.local:8123/?ha_entity_id=",
+                                     {{"inputstream.webrtc.bearer_token", "token"}}));
+  EXPECT_FALSE(ParseStreamProperties("http://ha.local:8123/?ha_entity_id=camera.garden", {}));
 }
 
 TEST(StreamPropertiesTest, IceServers)
 {
   const auto properties = ParseStreamProperties(
+      "http://host:8889/garden/whep",
       {{"inputstream.webrtc.ice_servers", " stun:a:3478 ,, turn:user:pass@b:3478 "}});
   ASSERT_TRUE(properties);
   EXPECT_EQ(properties->iceServers,
@@ -53,6 +52,6 @@ TEST(StreamPropertiesTest, IceServers)
 
 TEST(StreamPropertiesTest, RejectsInvalidValues)
 {
-  EXPECT_FALSE(ParseStreamProperties({{"inputstream.webrtc.signaling", "janus"}}));
-  EXPECT_FALSE(ParseStreamProperties({{"inputstream.webrtc.audio", "no"}}));
+  EXPECT_FALSE(
+      ParseStreamProperties("http://host:8889/garden/whep", {{"inputstream.webrtc.audio", "no"}}));
 }

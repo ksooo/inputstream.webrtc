@@ -9,7 +9,7 @@
     point="kodi.inputstream"
     name="webrtc"
     extension=""
-    listitemprops="signaling|entity_id|bearer_token|ice_servers|audio"
+    listitemprops="bearer_token|ice_servers|audio"
     library_@PLATFORM@="@LIBRARY_FILENAME@"/>
   <extension point="xbmc.addon.metadata">
     <platform>@PLATFORM@</platform>

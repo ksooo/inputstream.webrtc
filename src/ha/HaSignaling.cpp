@@ -9,6 +9,7 @@
 
 #include "session/IceServers.h"
 #include "utils/Log.h"
+#include "utils/Url.h"
 
 #include <condition_variable>
 #include <deque>
@@ -160,7 +161,8 @@ CHaSignaling::~CHaSignaling()
 
 std::optional<std::string> CHaSignaling::GetWebSocketUrl(const std::string& url)
 {
-  std::string base = url.substr(0, url.find('|'));
+  std::string base = SplitOptions(url).first;
+  base = base.substr(0, base.find('?'));
   const size_t separator = base.find("://");
   if (separator == std::string::npos)
     return {};

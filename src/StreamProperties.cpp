@@ -9,6 +9,7 @@
 
 #include "utils/Log.h"
 #include "utils/StringUtils.h"
+#include "utils/Url.h"
 
 namespace WEBRTC
 {
@@ -30,21 +31,14 @@ std::optional<std::string> GetProperty(const std::map<std::string, std::string>&
 } // namespace
 
 std::optional<StreamProperties> ParseStreamProperties(
-    const std::map<std::string, std::string>& properties)
+    const std::string& url, const std::map<std::string, std::string>& properties)
 {
   StreamProperties result;
 
-  if (const auto signaling = GetProperty(properties, "signaling"))
+  if (const auto entityId = GetQueryParameter(url, "ha_entity_id"))
   {
-    if (*signaling == "whep")
-      result.signaling = SignalingType::WHEP;
-    else if (*signaling == "homeassistant")
-      result.signaling = SignalingType::HOME_ASSISTANT;
-    else
-    {
-      Log(LogLevel::LEVEL_ERROR, "Unknown signaling '%s'", signaling->c_str());
-      return {};
-    }
+    result.signaling = SignalingType::HOME_ASSISTANT;
+    result.entityId = *entityId;
   }
 
   if (const auto audio = GetProperty(properties, "audio"))
@@ -64,14 +58,13 @@ std::optional<StreamProperties> ParseStreamProperties(
   if (const auto iceServers = GetProperty(properties, "ice_servers"))
     result.iceServers = Split(*iceServers, ',');
 
-  result.entityId = GetProperty(properties, "entity_id").value_or("");
   result.bearerToken = GetProperty(properties, "bearer_token").value_or("");
 
   if (result.signaling == SignalingType::HOME_ASSISTANT)
   {
     if (result.entityId.empty())
     {
-      Log(LogLevel::LEVEL_ERROR, "Home Assistant needs the entity_id of the camera");
+      Log(LogLevel::LEVEL_ERROR, "ha_entity_id in the URL needs the camera entity");
       return {};
     }
     if (result.bearerToken.empty())

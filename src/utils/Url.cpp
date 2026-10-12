@@ -7,6 +7,8 @@
 
 #include "Url.h"
 
+#include "StringUtils.h"
+
 #include <cctype>
 #include <optional>
 
@@ -199,6 +201,20 @@ std::string RemoveUserInfo(const std::string& url)
       parsed.authority->erase(0, at + 1);
   }
   return Compose(parsed);
+}
+
+std::optional<std::string> GetQueryParameter(const std::string& url, const std::string& name)
+{
+  const ParsedUrl parsed = Parse(SplitOptions(url).first);
+  if (!parsed.query)
+    return {};
+  for (const auto& parameter : Split(*parsed.query, '&'))
+  {
+    const size_t equals = parameter.find('=');
+    if (parameter.substr(0, equals) == name)
+      return equals == std::string::npos ? std::string() : parameter.substr(equals + 1);
+  }
+  return {};
 }
 
 } // namespace WEBRTC

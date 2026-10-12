@@ -273,6 +273,8 @@ TEST(HaSignalingTest, WebSocketUrl)
             "ws://ha.local:8123/api/websocket");
   EXPECT_EQ(CHaSignaling::GetWebSocketUrl("https://abc.ui.nabu.casa/"),
             "wss://abc.ui.nabu.casa/api/websocket");
+  EXPECT_EQ(CHaSignaling::GetWebSocketUrl("https://abc.ui.nabu.casa/?ha_entity_id=camera.garden"),
+            "wss://abc.ui.nabu.casa/api/websocket");
   EXPECT_EQ(CHaSignaling::GetWebSocketUrl("http://ha.local:8123/api/websocket|User-Agent=Kodi"),
             "ws://ha.local:8123/api/websocket");
   EXPECT_FALSE(CHaSignaling::GetWebSocketUrl("rtsp://ha.local"));
