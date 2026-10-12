@@ -61,6 +61,13 @@ provides, or those of the Linux distribution.
 4. `cmake -DADDONS_TO_BUILD=inputstream.webrtc -DADDON_SRC_PREFIX=../.. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=../../xbmc/build/addons -DPACKAGE_ZIP=1 ../../xbmc/cmake/addons`
 5. `make`
 
+### Distribution packages
+
+Outside of Kodi's add-on build system, the dependencies are taken from the system. Distributions
+package libdatachannel with other TLS libraries and versions, if at all;
+`-DENABLE_INTERNAL_LIBDATACHANNEL=ON` builds it with mbedTLS and its other dependencies along with
+the add-on, as the Debian packaging in `debian/` does.
+
 ### Unit tests
 
 The unit tests are built along with the add-on unless cross compiling. Run them with `ctest` in
