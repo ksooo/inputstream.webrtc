@@ -52,12 +52,17 @@ std::string H264Profile(const char* profileLevelId)
          ";packetization-mode=1;level-asymmetry-allowed=1";
 }
 
-void AddRemoteCandidate(rtc::PeerConnection& peerConnection, rtc::Candidate candidate)
+void AddRemoteCandidate(rtc::PeerConnection& peerConnection,
+                        CRelayCandidateLimit& relayCandidateLimit,
+                        rtc::Candidate candidate)
 {
   Log(LogLevel::LEVEL_DEBUG, "Remote candidate: %s", std::string(candidate).c_str());
 
   // libjuice does not connect over TCP, but counts TCP candidates towards its candidate limit
   if (candidate.transportType() != rtc::Candidate::TransportType::Udp)
+    return;
+
+  if (!relayCandidateLimit.Accept(candidate))
     return;
 
   try
@@ -82,6 +87,7 @@ struct CSession::State
   bool aborted{false};
   std::optional<std::chrono::steady_clock::time_point> lastVideo;
   std::vector<rtc::Candidate> pendingCandidates;
+  CRelayCandidateLimit relayCandidateLimit;
   std::weak_ptr<rtc::PeerConnection> peerConnection;
 };
 
@@ -199,23 +205,23 @@ bool CSession::Connect(ISignaling& signaling)
         Log(LogLevel::LEVEL_INFO, "Sending the offer before all ICE candidates were gathered");
     }
 
-    const auto answer =
-        signaling.Offer(std::string(*m_peerConnection->localDescription()),
-                        [state = m_state](rtc::Candidate candidate)
-                        {
-                          std::shared_ptr<rtc::PeerConnection> peerConnection;
-                          {
-                            std::lock_guard lock(state->mutex);
-                            if (!state->remoteDescriptionSet)
-                            {
-                              state->pendingCandidates.emplace_back(std::move(candidate));
-                              return;
-                            }
-                            peerConnection = state->peerConnection.lock();
-                          }
-                          if (peerConnection)
-                            AddRemoteCandidate(*peerConnection, std::move(candidate));
-                        });
+    const auto answer = signaling.Offer(
+        std::string(*m_peerConnection->localDescription()),
+        [state = m_state](rtc::Candidate candidate)
+        {
+          std::shared_ptr<rtc::PeerConnection> peerConnection;
+          {
+            std::lock_guard lock(state->mutex);
+            if (!state->remoteDescriptionSet)
+            {
+              state->pendingCandidates.emplace_back(std::move(candidate));
+              return;
+            }
+            peerConnection = state->peerConnection.lock();
+          }
+          if (peerConnection)
+            AddRemoteCandidate(*peerConnection, state->relayCandidateLimit, std::move(candidate));
+        });
     if (!answer)
       return false;
 
@@ -229,7 +235,7 @@ bool CSession::Connect(ISignaling& signaling)
       pendingCandidates = std::move(m_state->pendingCandidates);
     }
     for (auto& candidate : pendingCandidates)
-      AddRemoteCandidate(*m_peerConnection, std::move(candidate));
+      AddRemoteCandidate(*m_peerConnection, m_state->relayCandidateLimit, std::move(candidate));
 
     LogNegotiatedCodecs();
     SetCodecs(m_video, VIDEO_MID);

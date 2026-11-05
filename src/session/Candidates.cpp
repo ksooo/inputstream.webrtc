@@ -49,4 +49,10 @@ std::string RemoveTcpCandidates(const std::string& sdp)
   return result;
 }
 
+bool CRelayCandidateLimit::Accept(const rtc::Candidate& candidate)
+{
+  return candidate.type() != rtc::Candidate::Type::Relayed ||
+         m_relayCandidates.fetch_add(1) < MAX_RELAY_CANDIDATES;
+}
+
 } // namespace WEBRTC

@@ -11,6 +11,16 @@
 
 using namespace WEBRTC;
 
+namespace
+{
+
+rtc::Candidate MakeCandidate(int port, const std::string& type)
+{
+  return rtc::Candidate("a=candidate:1 1 udp 1 192.0.2.1 " + std::to_string(port) + " typ " + type);
+}
+
+} // namespace
+
 TEST(CandidatesTest, RemovesTcpCandidates)
 {
   const std::string sdp =
@@ -29,4 +39,14 @@ TEST(CandidatesTest, RemovesTcpCandidates)
 TEST(CandidatesTest, KeepsDescriptionWithoutFinalLineBreak)
 {
   EXPECT_EQ(RemoveTcpCandidates("v=0\na=mid:video"), "v=0\na=mid:video");
+}
+
+TEST(CandidatesTest, LimitsRelayCandidates)
+{
+  CRelayCandidateLimit limit;
+  for (int i = 0; i < CRelayCandidateLimit::MAX_RELAY_CANDIDATES; ++i)
+    EXPECT_TRUE(limit.Accept(MakeCandidate(10000 + i, "relay")));
+  EXPECT_FALSE(limit.Accept(MakeCandidate(20000, "relay")));
+  EXPECT_TRUE(limit.Accept(MakeCandidate(30000, "host")));
+  EXPECT_TRUE(limit.Accept(MakeCandidate(30001, "srflx")));
 }
