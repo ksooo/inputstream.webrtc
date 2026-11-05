@@ -1,0 +1,21 @@
+<?xml version="1.0" ?>
+<settings version="1">
+  <section id="inputstream.webrtc">
+    <category id="connection" label="30000">
+      <group id="1" label="">
+        <setting id="connection_timeout" type="integer" label="30001" help="30002">
+          <level>0</level>
+          <default>30</default>
+          <constraints>
+            <minimum>5</minimum>
+            <step>5</step>
+            <maximum>120</maximum>
+          </constraints>
+          <control type="slider" format="integer">
+            <formatlabel>14045</formatlabel>
+          </control>
+        </setting>
+      </group>
+    </category>
+  </section>
+</settings>

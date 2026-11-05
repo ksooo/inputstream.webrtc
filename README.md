@@ -51,6 +51,11 @@ administrator rights. Home Assistant has to support WebRTC for the camera, as it
 built-in go2rtc. For https, the server certificate is verified against the root certificates Kodi
 provides, or those of the Linux distribution.
 
+## Settings
+
+**Connection timeout** (Connection tab, default 30 seconds) limits how long a stream may take to
+connect, from the first request to the server until the media flows.
+
 ## Build instructions
 
 ### Linux / macOS

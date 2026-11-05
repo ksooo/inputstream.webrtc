@@ -1,0 +1,23 @@
+# Kodi Media Center language file
+# Addon Name: Inputstream WebRTC
+# Addon id: inputstream.webrtc
+# Addon Provider: ksooo
+msgid ""
+msgstr ""
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: en_GB\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgctxt "#30000"
+msgid "Connection"
+msgstr ""
+
+msgctxt "#30001"
+msgid "Connection timeout"
+msgstr ""
+
+msgctxt "#30002"
+msgid "How long to wait for a stream to connect before playback fails. Some servers, such as Home Assistant, at times take more than ten seconds."
+msgstr ""

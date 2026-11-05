@@ -26,7 +26,7 @@ namespace WEBRTC
 namespace
 {
 
-constexpr std::chrono::milliseconds CONNECT_TIMEOUT = std::chrono::seconds(10);
+constexpr std::chrono::milliseconds RESPONSE_TIMEOUT = std::chrono::seconds(10);
 constexpr std::chrono::milliseconds READ_TIMEOUT = std::chrono::milliseconds(20);
 
 } // namespace
@@ -57,7 +57,7 @@ bool CInputStream::Open(const kodi::addon::InputstreamProperty& props)
   {
     signalingFactory = [url = props.GetURL(), token = properties->bearerToken,
                         entityId = properties->entityId, caFile = FindCaBundle()]
-    { return std::make_unique<CHaSignaling>(url, token, entityId, caFile, CONNECT_TIMEOUT); };
+    { return std::make_unique<CHaSignaling>(url, token, entityId, caFile, RESPONSE_TIMEOUT); };
   }
   else
   {
@@ -68,8 +68,10 @@ bool CInputStream::Open(const kodi::addon::InputstreamProperty& props)
   }
 
   m_buffer = std::make_shared<CStreamBuffer>();
+  const std::chrono::seconds connectionTimeout{
+      kodi::addon::GetSettingInt("connection_timeout", 30)};
   m_connection = std::make_unique<CConnection>(
-      SessionConfig{ParseIceServers(properties->iceServers), properties->audio, CONNECT_TIMEOUT},
+      SessionConfig{ParseIceServers(properties->iceServers), properties->audio, connectionTimeout},
       std::move(signalingFactory), m_buffer);
   if (!m_connection->Open())
   {
