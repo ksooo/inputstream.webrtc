@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon
   id="inputstream.webrtc"
-  version="22.2.0"
+  version="22.2.1"
   name="Inputstream WebRTC"
   provider-name="ksooo">
   <requires>@ADDON_DEPENDS@</requires>
@@ -22,9 +22,9 @@
     <description lang="en_GB">Plays WebRTC live streams, such as camera feeds, from servers that support the WebRTC-HTTP Egress Protocol (WHEP), e.g. MediaMTX or go2rtc, and from the cameras of Home Assistant.</description>
     <summary lang="de_DE">WebRTC-Livestreams über WHEP oder Home Assistant</summary>
     <description lang="de_DE">WebRTC-Livestreams wie Kamerabilder von Servern abspielen, die das WebRTC-HTTP Egress Protocol (WHEP) unterstützen, z. B. MediaMTX oder go2rtc, sowie von den Kameras in Home Assistant.</description>
-    <news>v22.2.0
-- Camera live streams from Home Assistant 2026.11 play again
-- New setting for how long to wait for a stream to connect, 30 seconds by default
+    <news>v22.2.1
+- Live pictures stay closer to real time: a delay that builds up, e.g. while playback starts, is caught up again
+- Picture and sound stay in sync, and some cameras no longer make playback pause for buffering again and again
 </news>
   </extension>
 </addon>
