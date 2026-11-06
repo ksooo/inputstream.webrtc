@@ -23,9 +23,13 @@ TEST(RtpClockTest, FollowsTimestampsWhenInTime)
   EXPECT_EQ(time.pts, 1500000);
   EXPECT_FALSE(time.catchingUp);
 
-  // Arrives early, but the clock is not catching up any more
-  time = clock.ToPresentationTime(123456 + 2 * 90000, 2400000);
+  time = clock.ToPresentationTime(123456 + 2 * 90000, 2600000);
   EXPECT_EQ(time.pts, 2500000);
+  EXPECT_FALSE(time.catchingUp);
+
+  // Arrives early, but the clock is not catching up any more after a second in time
+  time = clock.ToPresentationTime(123456 + 3 * 90000, 3400000);
+  EXPECT_EQ(time.pts, 3500000);
   EXPECT_FALSE(time.catchingUp);
 }
 
@@ -47,6 +51,35 @@ TEST(RtpClockTest, CatchesUpWithBufferedFrames)
     EXPECT_NEAR(time.pts, arrival - 1000, 100);
     EXPECT_FALSE(time.catchingUp);
   }
+}
+
+TEST(RtpClockTest, CatchesUpWithBurstsAfterAFrameInTime)
+{
+  CRtpClock clock(90000);
+  EXPECT_EQ(clock.ToPresentationTime(0, 0).pts, 0);
+  // Delayed by a large frame before it
+  auto time = clock.ToPresentationTime(3600, 50000);
+  EXPECT_EQ(time.pts, 40000);
+  EXPECT_FALSE(time.catchingUp);
+  // The next burst of buffered frames
+  time = clock.ToPresentationTime(20 * 3600, 60000);
+  EXPECT_EQ(time.pts, 60000);
+  EXPECT_TRUE(time.catchingUp);
+}
+
+TEST(RtpClockTest, StartsAnewAfterJumps)
+{
+  CRtpClock clock(90000);
+  // A second in time, so the clock is not catching up any more
+  for (int i = 0; i <= 26; ++i)
+    EXPECT_EQ(clock.ToPresentationTime(i * 3600, i * 40000).pts, i * 40000);
+  // 22 s ahead
+  auto time = clock.ToPresentationTime(27 * 3600 + 22 * 90000, 27 * 40000);
+  EXPECT_EQ(time.pts, 27 * 40000);
+  EXPECT_FALSE(time.catchingUp);
+  EXPECT_EQ(clock.ToPresentationTime(28 * 3600 + 22 * 90000, 28 * 40000).pts, 28 * 40000);
+  // 5 s back
+  EXPECT_EQ(clock.ToPresentationTime(29 * 3600 + 17 * 90000, 29 * 40000).pts, 29 * 40000);
 }
 
 TEST(RtpClockTest, HandlesWrapAround)
