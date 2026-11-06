@@ -59,6 +59,105 @@ TEST(StreamBufferTest, DropsOldestWhenFull)
   EXPECT_EQ(packet.pts, 20);
 }
 
+namespace
+{
+
+const std::vector<uint8_t> KEYFRAME{0, 0, 0, 1, 0x65, 0x88};
+const std::vector<uint8_t> FRAME{0, 0, 0, 1, 0x41, 0x9a};
+const std::vector<uint8_t> AUDIO{0xfc};
+
+std::vector<std::pair<int, int64_t>> PopAll(CStreamBuffer& buffer)
+{
+  std::vector<std::pair<int, int64_t>> packets;
+  MediaPacket packet;
+  CStreamBuffer::Result result;
+  while ((result = buffer.Pop(0ms, packet)) != CStreamBuffer::Result::NONE)
+  {
+    if (result == CStreamBuffer::Result::PACKET)
+      packets.emplace_back(packet.streamId, packet.pts);
+  }
+  return packets;
+}
+
+} // namespace
+
+TEST(StreamBufferTest, SkipsToKeyframeWhenPacketsWaitTooLong)
+{
+  CStreamBuffer buffer(1024, 0ms);
+  buffer.SetStream({1, Codec::H264, {}});
+  buffer.SetStream({2, Codec::OPUS, {}});
+  buffer.Push({1, KEYFRAME, 1000});
+  buffer.Push({2, AUDIO, 1010});
+  buffer.Push({1, FRAME, 1040});
+  buffer.Push({2, AUDIO, 1030});
+  buffer.Push({1, KEYFRAME, 1080});
+  buffer.Push({2, AUDIO, 1090});
+  buffer.Push({1, FRAME, 1120});
+
+  using Packets = std::vector<std::pair<int, int64_t>>;
+  EXPECT_EQ(PopAll(buffer), (Packets{{1, 1000}, {2, 1010}, {1, 1040}}));
+
+  // Without queued video there is nothing to skip; later skips add up
+  buffer.Push({2, AUDIO, 1130});
+  buffer.Push({1, KEYFRAME, 1160});
+  buffer.Push({1, FRAME, 1200});
+  buffer.Push({1, KEYFRAME, 1240});
+  EXPECT_EQ(PopAll(buffer), (Packets{{1, 1080}}));
+}
+
+TEST(StreamBufferTest, KeepsAudioKodiStillNeeds)
+{
+  CStreamBuffer buffer(1024, 0ms);
+  buffer.SetStream({1, Codec::H264, {}});
+  buffer.SetStream({2, Codec::OPUS, {}});
+  buffer.Push({1, KEYFRAME, 1000});
+  buffer.Push({2, AUDIO, 1000});
+  PopAll(buffer);
+
+  // Less video time than audio time queued
+  buffer.Push({2, AUDIO, 1020});
+  buffer.Push({2, AUDIO, 1040});
+  buffer.Push({1, FRAME, 1040});
+  buffer.Push({2, AUDIO, 1060});
+  buffer.Push({1, KEYFRAME, 1050});
+  buffer.Push({2, AUDIO, 1080});
+
+  using Packets = std::vector<std::pair<int, int64_t>>;
+  EXPECT_EQ(PopAll(buffer), (Packets{{2, 1010}, {2, 1030}, {2, 1050}, {1, 1040}, {2, 1070}}));
+}
+
+TEST(StreamBufferTest, DropsAudioKodiAlreadyGot)
+{
+  CStreamBuffer buffer(1024, 0ms);
+  buffer.SetStream({1, Codec::H264, {}});
+  buffer.SetStream({2, Codec::OPUS, {}});
+  buffer.Push({1, KEYFRAME, 1000});
+  buffer.Push({2, AUDIO, 1000});
+  PopAll(buffer);
+
+  // More video time than audio time queued
+  buffer.Push({2, AUDIO, 1020});
+  buffer.Push({1, FRAME, 1040});
+  buffer.Push({1, KEYFRAME, 1200});
+  buffer.Push({2, AUDIO, 1040});
+  buffer.Push({2, AUDIO, 1180});
+
+  using Packets = std::vector<std::pair<int, int64_t>>;
+  EXPECT_EQ(PopAll(buffer), (Packets{{1, 1040}, {2, 1020}}));
+}
+
+TEST(StreamBufferTest, KeepsPacketsThatWaitShortly)
+{
+  CStreamBuffer buffer(1024, 1h);
+  buffer.SetStream({1, Codec::H264, {}});
+  buffer.Push({1, KEYFRAME, 1000});
+  buffer.Push({1, FRAME, 1040});
+  buffer.Push({1, KEYFRAME, 1080});
+
+  using Packets = std::vector<std::pair<int, int64_t>>;
+  EXPECT_EQ(PopAll(buffer), (Packets{{1, 1000}, {1, 1040}, {1, 1080}}));
+}
+
 TEST(StreamBufferTest, AbortWakesWaitingPop)
 {
   CStreamBuffer buffer;

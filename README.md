@@ -34,6 +34,9 @@ Other HTTP headers can be appended to the URL in Kodi's usual way, e.g.
 
 TURN servers are only used over UDP.
 
+When Kodi falls behind the live stream, e.g. while it opens the decoders, the add-on skips ahead
+to the next keyframe, so the picture stays close to real time.
+
 ### Home Assistant
 
 The URL is the address of Home Assistant, also a Home Assistant Cloud remote URL, with the camera
